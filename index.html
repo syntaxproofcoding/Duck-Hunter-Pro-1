@@ -1,0 +1,2061 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#161d29" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#eef1f5" media="(prefers-color-scheme: light)">
+<meta name="color-scheme" content="dark light">
+<title>TPS Notes</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<style>
+  :root {
+    --bg: #161d29; --surface: #1f2837; --well: #121822; --line: #334157;
+    --text: #e6ebf2; --muted: #93a1b8; --amber: #f0b429; --amber-ink: #231a00;
+    --ok: #6fcf97; --missing: #f0b429; --danger: #ff8a80;
+    --r-lg: 14px; --r-sm: 8px;
+  }
+  :root {
+    --t-undergrad: #b39ddb; --t-freshman: #6fcf97; --t-sophomore: #56ccf2;
+    --t-junior: #f0b429; --t-senior: #ff8a80; --t-unknown: #93a1b8;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --t-undergrad: #6a4fb3; --t-freshman: #1e8a52; --t-sophomore: #1769aa;
+      --t-junior: #9a6b00; --t-senior: #c62828; --t-unknown: #5a6780;
+    }
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #eef1f5; --surface: #ffffff; --well: #f7f9fb; --line: #cfd7e2;
+      --text: #172030; --muted: #5a6780; --ok: #1e8a52; --missing: #b07800; --danger: #c62828;
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  body {
+    font-family: system-ui, "SamsungOne", Roboto, "Segoe UI", sans-serif;
+    font-size: 1rem; line-height: 1.45;
+    padding: max(12px, env(safe-area-inset-top)) 14px calc(96px + env(safe-area-inset-bottom));
+    max-width: 560px; margin-inline: auto;
+    -webkit-tap-highlight-color: transparent;
+  }
+  header { display: flex; align-items: baseline; justify-content: space-between; margin: 4px 2px 12px; }
+  h1 { font-size: 1.15rem; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+  h2 { font-size: 1.05rem; margin: 0 0 12px; }
+  #net { font-size: .8rem; color: var(--muted); }
+  #net.ready { color: var(--ok); }
+  .hdrR { display: flex; align-items: center; gap: 10px; }
+  #duckLink { font-size: .82rem; font-weight: 700; color: var(--amber-ink); background: var(--amber); padding: 6px 12px; border-radius: 16px; text-decoration: none; }
+
+  .tabs { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--well); border: 1.5px solid var(--line); border-radius: var(--r-sm); padding: 3px; margin-bottom: 14px; }
+  .tabs button { border: 0; background: transparent; color: var(--muted); min-height: 44px; }
+  .tabs button.on { background: var(--surface); color: var(--text); box-shadow: inset 0 -3px 0 var(--amber); }
+
+  textarea {
+    display: block; width: 100%; resize: vertical;
+    background: var(--well); color: var(--text);
+    border: 1.5px solid var(--line); border-radius: var(--r-lg);
+    padding: 14px; font: inherit; font-size: .95rem;
+  }
+  #raw { height: 28vh; min-height: 150px; }
+  #noteBody { height: 58vh; min-height: 240px; line-height: 1.5; padding-right: 72px; }
+  textarea:focus, .text:focus { outline: none; border-color: var(--amber); }
+
+  .row { display: flex; gap: 10px; margin-top: 10px; }
+  button {
+    min-height: 48px; font: inherit; font-weight: 600; cursor: pointer;
+    border-radius: var(--r-sm); border: 1.5px solid var(--line);
+    background: var(--surface); color: var(--text); padding: 0 16px;
+  }
+  button:focus-visible, input:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+  button:active { transform: scale(.98); }
+  .row > button { flex: 1; }
+  button.primary { background: var(--amber); color: var(--amber-ink); border-color: var(--amber); }
+  button.danger { color: var(--danger); }
+  button.ghost { background: transparent; }
+
+  .text {
+    width: 100%; min-height: 48px; font: inherit; color: var(--text);
+    background: var(--well); border: 1.5px solid var(--line); border-radius: var(--r-sm); padding: 0 12px;
+  }
+
+  .opts { display: flex; flex-wrap: wrap; gap: 0 18px; margin: 12px 2px 0; font-size: .9rem; color: var(--muted); }
+  .opts label { display: flex; align-items: center; gap: 8px; min-height: 40px; }
+  .opts input { width: 20px; height: 20px; accent-color: var(--amber); }
+
+  .card { margin-top: 14px; background: var(--surface); border: 1.5px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+  .field { display: grid; grid-template-columns: 76px 1fr 48px; align-items: center; border-top: 1px solid var(--line); }
+  .field:first-child { border-top: 0; }
+  .field label { padding-left: 14px; font-size: .85rem; color: var(--muted); }
+  .field input { width: 100%; min-height: 52px; background: transparent; color: var(--text); border: 0; font: inherit; padding: 8px 6px; }
+  .field.missing { box-shadow: inset 4px 0 0 var(--missing); }
+  .field.missing input::placeholder { color: var(--missing); opacity: 1; }
+  .field button { border: 0; background: transparent; min-height: 52px; padding: 0; color: var(--muted); }
+  .field button svg { width: 20px; height: 20px; }
+  .field button.done { color: var(--ok); }
+
+  .alts { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 14px 12px 90px; }
+  .alts:empty { display: none; }
+  .alts button { min-height: 40px; font-size: .85rem; font-weight: 500; padding: 0 12px; border-radius: 20px; }
+  .alts button.on { border-color: var(--amber); }
+
+  .empty { color: var(--muted); font-size: .9rem; margin: 14px 4px 0; }
+
+  .notes { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; }
+  .notes button { width: 100%; text-align: left; padding: 12px 14px; display: grid; gap: 2px; border-radius: var(--r-lg); }
+  .notes .t { font-size: 1rem; }
+  .notes .m { font-size: .82rem; font-weight: 400; color: var(--muted); }
+
+  .noteHead { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .noteHead button { flex: none; padding: 0 12px; }
+  .meta { font-size: .82rem; color: var(--muted); margin: 8px 2px 0; }
+  .jump {
+    position: fixed; right: max(22px, calc((100vw - 560px) / 2 + 22px)); top: 46%; transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 10px; z-index: 5;
+  }
+  .jump button {
+    width: 52px; height: 52px; min-height: 52px; padding: 0; border-radius: 50%;
+    display: grid; place-items: center; box-shadow: 0 4px 14px rgba(0, 0, 0, .35);
+  }
+  .jump button svg { width: 24px; height: 24px; }
+
+  .dock {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+    background: linear-gradient(to top, var(--bg) 70%, transparent);
+  }
+  #copyAll { display: block; width: 100%; max-width: 532px; margin: 0 auto; min-height: 56px; font-size: 1.05rem; }
+  #copyAll:disabled { opacity: .45; }
+
+  .scrim { position: fixed; inset: 0; background: rgba(5, 8, 14, .6); z-index: 10; display: flex; align-items: flex-end; justify-content: center; }
+  .sheet {
+    width: 100%; max-width: 560px; max-height: 85vh; overflow-y: auto;
+    background: var(--surface); border-top: 1.5px solid var(--line);
+    border-radius: 18px 18px 0 0; padding: 18px 14px calc(16px + env(safe-area-inset-bottom));
+    animation: up .18s ease-out;
+  }
+  @keyframes up { from { transform: translateY(24px); opacity: .6; } }
+  .sheet .notes { margin-top: 0; }
+  .sheet .newRow { display: flex; gap: 8px; margin-top: 12px; }
+  .sheet .newRow button { flex: none; }
+  .sheet .preview { white-space: pre-wrap; font-size: .82rem; color: var(--muted); background: var(--well); border-radius: var(--r-sm); padding: 10px 12px; margin: 0 0 14px; }
+
+  #toast {
+    position: fixed; left: 50%; top: calc(14px + env(safe-area-inset-top)); transform: translateX(-50%);
+    background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 22px; font-size: .9rem; font-weight: 600;
+    z-index: 20; max-width: 90vw;
+  }
+  /* ---------- game layer ---------- */
+  .hud {
+    display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 10px;
+    width: 100%; padding: 8px 12px; margin: 0 0 12px; min-height: 52px;
+    background: var(--surface); border: 1.5px solid var(--line); border-radius: var(--r-lg); text-align: left;
+  }
+  .hud .lv { font-size: .78rem; color: var(--muted); font-weight: 700; letter-spacing: .04em; }
+  .hud .lv b { font-size: 1.15rem; color: var(--amber); margin-left: 3px; }
+  .hud .xpwrap { display: grid; gap: 3px; min-width: 0; }
+  .bar { height: 8px; border-radius: 4px; background: var(--well); overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--amber); border-radius: 4px; transition: width .5s ease-out; }
+  .hud .xptxt { font-size: .72rem; color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; }
+  .hud .day { display: flex; align-items: center; gap: 5px; font-size: .82rem; font-variant-numeric: tabular-nums; }
+  .hud .day svg { width: 24px; height: 24px; transform: rotate(-90deg); }
+  .hud .day .trk { stroke: var(--well); }
+  .hud .day .prg { stroke: var(--ok); transition: stroke-dashoffset .5s ease-out; }
+  .hud .streak { font-size: .85rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .hud .streak.cold { opacity: .45; }
+
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 20px;
+    font-size: .78rem; font-weight: 700; letter-spacing: .03em; color: var(--tc, var(--muted));
+    border: 1.5px solid var(--tc, var(--line)); white-space: nowrap;
+  }
+  .chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--tc, var(--muted)); }
+  .t-UNDERGRAD { --tc: var(--t-undergrad); } .t-FRESHMAN { --tc: var(--t-freshman); }
+  .t-SOPHOMORE { --tc: var(--t-sophomore); } .t-JUNIOR { --tc: var(--t-junior); }
+  .t-SENIOR { --tc: var(--t-senior); } .t-AGE_UNKNOWN { --tc: var(--t-unknown); }
+  .tierRow { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 14px 2px 0; min-height: 28px; }
+  .gain { font-size: .85rem; font-weight: 700; color: var(--ok); font-variant-numeric: tabular-nums; }
+  .gain.zero { color: var(--muted); font-weight: 500; }
+  .sheetTier { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: -4px 0 10px; }
+
+  .tbar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: var(--well); margin-top: 6px; }
+  .tbar span { display: block; height: 100%; background: var(--tc); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+  .chips:empty { display: none; }
+
+  .stats { display: grid; gap: 12px; }
+  .panel { background: var(--surface); border: 1.5px solid var(--line); border-radius: var(--r-lg); padding: 14px; }
+  .panel h3 { margin: 0 0 10px; font-size: .8rem; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+  .big { font-size: 2rem; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .sub { font-size: .85rem; color: var(--muted); margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .goalRow { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: .9rem; color: var(--muted); }
+  .goalRow input { width: 84px; }
+  .trow { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; margin-top: 10px; }
+  .trow .bar i { background: var(--tc); }
+  .trow .bar { grid-column: 1 / -1; }
+  .trow b { font-variant-numeric: tabular-nums; }
+  .trow .chip { justify-self: start; }
+  .achs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ach { border: 1.5px solid var(--line); border-radius: var(--r-sm); padding: 10px; }
+  .ach .n { font-weight: 700; font-size: .9rem; }
+  .ach .d { font-size: .78rem; color: var(--muted); margin-top: 2px; }
+  .ach.on { border-color: var(--amber); }
+  .ach.on .n::before { content: "★ "; color: var(--amber); }
+  .ach:not(.on) { opacity: .55; }
+  .fine { font-size: .8rem; color: var(--muted); margin: 4px 2px 0; }
+
+  #xpPop {
+    position: fixed; left: 50%; top: 38%; transform: translate(-50%, 0); z-index: 30; pointer-events: none;
+    font-size: 1.6rem; font-weight: 800; color: var(--amber); text-shadow: 0 2px 12px rgba(0,0,0,.45); text-align: center;
+  }
+  #xpPop small { display: block; font-size: .85rem; color: var(--text); font-weight: 700; }
+  #xpPop.go { animation: rise 1.1s ease-out forwards; }
+  @keyframes rise { 0% { opacity: 0; transform: translate(-50%, 16px) scale(.9); } 15% { opacity: 1; transform: translate(-50%, 0) scale(1.08); } 100% { opacity: 0; transform: translate(-50%, -60px) scale(1); } }
+  #lvlUp { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: rgba(5, 8, 14, .78); }
+  #lvlUp .box { text-align: center; animation: pop .45s cubic-bezier(.2, 1.4, .4, 1); }
+  #lvlUp .k { font-size: .9rem; letter-spacing: .3em; color: var(--muted); font-weight: 700; }
+  #lvlUp .v { font-size: 4.5rem; font-weight: 900; color: var(--amber); line-height: 1; margin: 6px 0; }
+  #lvlUp .s { font-size: .9rem; color: var(--text); }
+  @keyframes pop { from { transform: scale(.4); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { #xpPop.go, #lvlUp .box { animation: none; } .bar i, .hud .day .prg { transition: none; } }
+  /* ---------- work page ---------- */
+  .tabs button { font-size: .92rem; padding: 0 4px; }
+  .badge { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 4px; border-radius: 9px; background: var(--danger); color: #fff; font-size: .7rem; line-height: 18px; vertical-align: 1px; }
+  .workBar { display: flex; gap: 8px; margin-bottom: 10px; }
+  .workBar select { flex: 1; min-width: 0; }
+  .workBar button { flex: none; padding: 0 12px; font-size: .85rem; }
+  .seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 12px; }
+  .seg.two { grid-template-columns: 1fr 1fr; }
+  .seg button { min-height: 48px; padding: 2px 4px; font-size: .8rem; line-height: 1.15; color: var(--muted); }
+  .seg button.on { border-color: var(--amber); color: var(--text); }
+  .seg button b { display: block; font-size: .95rem; color: var(--text); }
+  .cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .wcard { background: var(--surface); border: 1.5px solid var(--line); border-left: 5px solid var(--tc); border-radius: var(--r-lg); padding: 12px; }
+  .wh { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .wn { font-weight: 700; font-size: 1.05rem; min-width: 0; overflow-wrap: anywhere; }
+  .wnote { font-size: .75rem; color: var(--muted); }
+  .call {
+    display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; margin: 10px 0 6px;
+    border-radius: var(--r-sm); background: var(--well); border: 1.5px solid var(--line);
+    color: var(--text); text-decoration: none; font-weight: 700; font-size: 1.05rem; font-variant-numeric: tabular-nums;
+  }
+  .call svg { width: 20px; height: 20px; color: var(--ok); }
+  .call { white-space: nowrap; gap: 6px; }
+  .callRow .call:first-child { font-size: 1rem; min-width: 0; }
+  .callRow { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin: 10px 0 6px; }
+  .callRow .call { margin: 0; }
+  .call.look { padding: 0 14px; font-size: .9rem; }
+  .call.look svg { color: var(--amber); }
+  .call.look.none { opacity: .5; }
+  #workPriv.on { border-color: var(--amber); color: var(--amber); }
+  .call .priv { font-size: .75rem; font-weight: 800; color: var(--amber); border: 1.5px solid var(--amber); border-radius: 6px; padding: 0 5px; }
+  .wm { font-size: .85rem; color: var(--muted); }
+  .ws { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: .82rem; margin-top: 8px; color: var(--muted); }
+  .ws b { color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ws .due { color: var(--amber); font-weight: 700; }
+  .ws .over { color: var(--danger); font-weight: 700; }
+  .wa { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
+  .wa button { min-height: 50px; padding: 2px 4px; font-size: .8rem; line-height: 1.15; }
+  .wa button small { display: block; font-size: .72rem; font-weight: 600; color: var(--ok); margin-top: 2px; }
+  .wa .win { border-color: var(--ok); }
+  .wa .trash { background: #d93a3a; border-color: #d93a3a; color: #fff; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .wa .trash svg { width: 18px; height: 18px; flex: none; }
+  .wa button:disabled { opacity: .35; }
+  .lbl { display: block; font-size: .85rem; color: var(--muted); margin: 14px 0 6px; }
+  .quick { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 4px; }
+  .quick button { min-height: 40px; font-size: .85rem; font-weight: 500; border-radius: 20px; padding: 0 12px; }
+  .ptable { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; font-size: .88rem; }
+  .ptable b { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+  .ptable .h { grid-column: 1 / -1; font-size: .78rem; color: var(--muted); margin-top: 8px; letter-spacing: .04em; text-transform: uppercase; }
+  #xpPop.neg { color: var(--danger); }
+  .gain.block { color: var(--danger); }
+  /* ---------- saved profile viewer ---------- */
+  .sheet.tall { max-height: 92vh; }
+  .profHead { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .profHead h2 { margin: 0; }
+  .psec { border-top: 1px solid var(--line); padding: 12px 0 4px; margin-top: 10px; }
+  .psec h3 { margin: 0 0 8px; font-size: .78rem; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+  .pitem { padding: 6px 0; font-size: .92rem; }
+  .pitem + .pitem { border-top: 1px dashed var(--line); }
+  .pitem .s { font-size: .8rem; color: var(--muted); }
+  .ptag { display: inline-block; font-size: .7rem; font-weight: 700; padding: 1px 7px; border-radius: 10px; border: 1px solid var(--line); margin-left: 6px; vertical-align: 1px; color: var(--muted); }
+  .ptag.good { color: var(--ok); border-color: var(--ok); }
+  .ptag.bad { color: var(--danger); border-color: var(--danger); }
+  .ptag.mine { color: var(--amber); border-color: var(--amber); }
+  .pphone { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .pphone a { color: var(--text); font-weight: 700; text-decoration: none; font-variant-numeric: tabular-nums; }
+  .pphone.dead a { color: var(--muted); text-decoration: line-through; }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: .88rem; }
+  .kv span { color: var(--muted); }
+  .people { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; font-size: .9rem; }
+  .people span { color: var(--muted); font-size: .8rem; }
+  .bio p { margin: 0 0 8px; font-size: .88rem; color: var(--muted); }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  @media (prefers-reduced-motion: reduce) { button:active { transform: none; } .sheet { animation: none; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>TPS Notes</h1>
+  <span class="hdrR"><span id="net">Runs on this phone</span><a id="duckLink" href="duck.html">Duck View</a></span>
+</header>
+
+<button class="hud" id="hud" type="button" aria-label="Open stats">
+  <span class="lv">LV<b id="hudLv">1</b></span>
+  <span class="xpwrap"><span class="bar"><i id="hudBar"></i></span><span class="xptxt" id="hudXp">0 / 100 XP</span></span>
+  <span class="day"><svg viewBox="0 0 24 24" aria-hidden="true"><circle class="trk" cx="12" cy="12" r="9" fill="none" stroke-width="4"/><circle class="prg" id="hudRing" cx="12" cy="12" r="9" fill="none" stroke-width="4" stroke-linecap="round" stroke-dasharray="56.55" stroke-dashoffset="56.55"/></svg><b id="hudDay">0/25</b></span>
+  <span class="streak" id="hudStreak">🔥 0</span>
+</button>
+
+<nav class="tabs" aria-label="Sections">
+  <button id="tabParser" type="button" class="on">Parser</button>
+  <button id="tabNotes" type="button">Notes</button>
+  <button id="tabWork" type="button">Work</button>
+  <button id="tabStats" type="button">Stats</button>
+</nav>
+
+<!-- Parser view -->
+<section id="viewParser">
+  <label for="raw" class="sr">Raw profile text</label>
+  <textarea id="raw" placeholder="Paste raw profile text here..." autocomplete="off" autocorrect="off" spellcheck="false"></textarea>
+  <div class="row">
+    <button id="pasteBtn" type="button">Paste</button>
+    <button id="clearBtn" type="button">Clear</button>
+  </div>
+  <div class="opts">
+    <label><input type="checkbox" id="optFirstLast"> First + last name only</label>
+    <label><input type="checkbox" id="optPretty"> Phone as (847) 549-6228</label>
+    <label><input type="checkbox" id="optAutoClear"> Clear box after adding to a note</label>
+    <label><input type="checkbox" id="optAutoPaste"> Auto-paste copied profiles when the app opens</label>
+  </div>
+  <p class="empty" id="hint">Fields fill in as soon as you paste. You can edit any field before copying.</p>
+  <div class="tierRow" id="tierRow" hidden><span class="chip" id="tierChip"></span><span class="gain" id="xpPreview"></span></div>
+  <div class="card">
+    <div class="field" data-k="name"><label for="f-name">Name</label><input id="f-name" placeholder="N/A"><button type="button" aria-label="Copy name"></button></div>
+    <div class="field" data-k="age"><label for="f-age">Age</label><input id="f-age" inputmode="numeric" placeholder="N/A"><button type="button" aria-label="Copy age"></button></div>
+    <div class="field" data-k="phone"><label for="f-phone">Phone #</label><input id="f-phone" inputmode="tel" placeholder="N/A"><button type="button" aria-label="Copy phone"></button></div>
+    <div class="alts" id="alts"></div>
+    <div class="field" data-k="address"><label for="f-address">Address</label><input id="f-address" placeholder="N/A"><button type="button" aria-label="Copy address"></button></div>
+    <div class="field" data-k="county"><label for="f-county">County</label><input id="f-county" placeholder="N/A"><button type="button" aria-label="Copy county"></button></div>
+  </div>
+</section>
+
+<!-- Notes list -->
+<section id="viewNotes" hidden>
+  <button id="newNoteBtn" type="button" class="primary" style="width:100%">New note</button>
+  <ul class="notes" id="noteList"></ul>
+  <p class="empty" id="notesEmpty">No notes yet. Create one here, or tap "Copy to note" on the Parser tab.</p>
+</section>
+
+<!-- Single note -->
+<section id="viewNote" hidden>
+  <div class="noteHead">
+    <button id="noteBack" type="button" class="ghost" aria-label="Back to notes">Back</button>
+    <label for="noteTitle" class="sr">Note name</label>
+    <input id="noteTitle" class="text" autocomplete="off">
+  </div>
+  <div class="chips" id="noteTiers"></div>
+  <label for="noteBody" class="sr">Note text</label>
+  <textarea id="noteBody" spellcheck="false"></textarea>
+  <p class="meta" id="noteMeta"></p>
+  <div class="jump">
+    <button id="jumpTop" type="button" aria-label="Go to top of note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></button>
+    <button id="jumpBottom" type="button" class="primary" aria-label="Go to bottom of note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+  </div>
+  <div class="row">
+    <button id="noteCopy" type="button">Copy all</button>
+    <button id="noteShare" type="button">Share</button>
+    <button id="noteDelete" type="button" class="danger">Delete</button>
+  </div>
+</section>
+
+<!-- Work -->
+<section id="viewWork" hidden>
+  <div class="workBar">
+    <label for="workNote" class="sr">Which note</label>
+    <select id="workNote" class="text"></select>
+    <button id="workSort" type="button">Note order</button>
+  </div>
+  <div class="workBar">
+    <button id="workPriv" type="button" style="flex:1"></button>
+  </div>
+  <div class="seg" id="workSeg">
+    <button type="button" data-f="tocall" class="on"><b>0</b>To call</button>
+    <button type="button" data-f="callback"><b>0</b>Call backs</button>
+    <button type="button" data-f="done"><b>0</b>Done</button>
+    <button type="button" data-f="hidden"><b>0</b>Trash</button>
+  </div>
+  <ul class="cards" id="workList"></ul>
+  <button id="workMore" type="button" style="width:100%;margin-top:12px" hidden>Show more</button>
+  <p class="empty" id="workEmpty" hidden></p>
+</section>
+
+<!-- Stats -->
+<section id="viewStats" hidden>
+  <div class="stats">
+    <div class="panel">
+      <h3>Level</h3>
+      <div class="big" id="stLevel">Level 1</div>
+      <div class="bar" style="margin-top:10px"><i id="stBar"></i></div>
+      <div class="sub" id="stXp"></div>
+    </div>
+    <div class="split">
+      <div class="panel"><h3>Today</h3><div class="big" id="stToday">0</div><div class="sub" id="stTodaySub"></div></div>
+      <div class="panel"><h3>Streak</h3><div class="big" id="stStreak">0</div><div class="sub" id="stBest"></div></div>
+    </div>
+    <div class="panel">
+      <h3>Daily goal</h3>
+      <div class="goalRow"><label for="goalIn">Entries per day</label><input id="goalIn" class="text" type="number" inputmode="numeric" min="1" max="999"></div>
+    </div>
+    <div class="panel">
+      <h3>Calls</h3>
+      <div class="split"><div><div class="big" id="stCallsToday">0</div><div class="sub">calls today</div></div>
+      <div><div class="big" id="stWins">0</div><div class="sub" id="stWinRate">successes</div></div></div>
+      <div class="split" style="margin-top:14px"><div><div class="big" id="stSecToday">$0</div><div class="sub">secured today</div></div>
+      <div><div class="big" id="stSec">$0</div><div class="sub" id="stBestDeal">secured total</div></div></div>
+    </div>
+    <div class="panel"><h3>Ranks in your notes</h3><div id="stTiers"></div></div>
+    <div class="panel"><h3>Achievements</h3><div class="achs" id="stAchs"></div></div>
+    <div class="panel" id="syncPanel">
+      <h3>Cloud sync</h3>
+      <div id="syncSetup" hidden>
+        <p class="fine" style="margin:0 0 8px">Connect your Supabase project once. Your notes and progress then save to the cloud automatically.</p>
+        <label class="lbl" for="syncUrl" style="margin-top:0">Project URL</label>
+        <input id="syncUrl" class="text" placeholder="https://xxxx.supabase.co" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <label class="lbl" for="syncKey">Anon public key</label>
+        <input id="syncKey" class="text" placeholder="eyJ..." autocomplete="off" autocapitalize="off" spellcheck="false">
+        <div class="row"><button id="syncCfgSave" type="button" class="primary">Connect</button></div>
+      </div>
+      <div id="syncLogin" hidden>
+        <label class="lbl" for="syncEmail" style="margin-top:0">Email</label>
+        <input id="syncEmail" class="text" type="email" autocomplete="username" autocapitalize="off">
+        <label class="lbl" for="syncPass">Password</label>
+        <input id="syncPass" class="text" type="password" autocomplete="current-password">
+        <div class="row"><button id="syncSignIn" type="button" class="primary">Sign in</button><button id="syncSignUp" type="button">Create account</button></div>
+        <div class="row"><button id="syncCfgEdit" type="button" class="ghost">Change project</button></div>
+      </div>
+      <div id="syncOn" hidden>
+        <div class="sub" id="syncWho" style="margin-top:0"></div>
+        <div class="sub" id="syncStatus"></div>
+        <div class="row"><button id="syncNowBtn" type="button">Sync now</button><button id="syncOut" type="button" class="ghost">Sign out</button></div>
+      </div>
+    </div>
+    <div class="panel" id="backupPanel">
+      <h3>Backup</h3>
+      <div class="sub" id="bkLast" style="margin-top:0"></div>
+      <div class="sub" id="bkPersist"></div>
+      <div class="row"><button id="bkSave" type="button" class="primary">Back up now</button><button id="bkLoad" type="button">Restore</button></div>
+      <input id="bkFile" type="file" accept=".json,application/json" hidden>
+      <p class="fine" style="margin-top:10px">Saves your notes, saved profiles, call history, XP, achievements and settings into one file. Keep it in Google Drive or email it to yourself. Restore replaces what's on this phone with the backup.</p>
+    </div>
+    <div class="panel"><h3>How points work</h3><div class="ptable" id="stPoints"></div></div>
+    <p class="fine">XP only counts entries still in your notes, so deleting an entry takes its XP (and its call points) back. Re-adding someone already in your notes earns nothing, and anyone in the trash can't be added again.</p>
+  </div>
+</section>
+
+<div class="dock" id="dock"><button id="copyAll" type="button" class="primary" disabled>Copy to note</button></div>
+
+<!-- Copy-to-note menu -->
+<div class="scrim" id="sheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <h2 id="sheetTitle">Copy to which note?</h2>
+    <div class="sheetTier"><span class="chip" id="sheetChip"></span><span class="gain" id="sheetGain"></span></div>
+    <p class="preview" id="sheetPreview"></p>
+    <ul class="notes" id="sheetList"></ul>
+    <div class="newRow">
+      <label for="sheetNew" class="sr">New note name</label>
+      <input id="sheetNew" class="text" placeholder="New note name" autocomplete="off">
+      <button id="sheetCreate" type="button" class="primary">Create</button>
+    </div>
+    <div class="row">
+      <button id="sheetClip" type="button">Clipboard only</button>
+      <button id="sheetCancel" type="button" class="ghost">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Saved profile viewer -->
+<div class="scrim" id="profSheet" hidden>
+  <div class="sheet tall" role="dialog" aria-modal="true" aria-labelledby="profName">
+    <div class="profHead"><h2 id="profName"></h2><span class="chip" id="profChip"></span></div>
+    <div id="profBody"></div>
+    <div class="row"><button id="profClose" type="button">Close</button></div>
+  </div>
+</div>
+
+<!-- Success menu -->
+<div class="scrim" id="winSheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="winTitle">
+    <h2 id="winTitle">Successful call</h2>
+    <p class="sub" id="winWho" style="margin:-6px 0 12px"></p>
+    <label class="lbl" for="winAmt">Amount secured for the company</label>
+    <input id="winAmt" class="text" inputmode="decimal" placeholder="$0" autocomplete="off">
+    <p class="gain" id="winPts" style="margin:12px 2px"></p>
+    <div class="row"><button id="winSave" type="button" class="primary">Log success</button><button id="winCancel" type="button" class="ghost">Cancel</button></div>
+  </div>
+</div>
+
+<!-- Call back menu -->
+<div class="scrim" id="cbSheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="cbTitle">
+    <h2 id="cbTitle">Call back</h2>
+    <p class="sub" id="cbWho" style="margin:-6px 0 12px"></p>
+    <div class="seg two" id="cbKind">
+      <button type="button" data-k="cb_voicemail" class="on"><b id="cbPtsVm"></b>Left a voicemail</button>
+      <button type="button" data-k="cb_answered"><b id="cbPtsAns"></b>They answered</button>
+    </div>
+    <label class="lbl" for="cbAt">Call back at</label>
+    <input id="cbAt" type="datetime-local" class="text">
+    <div class="quick">
+      <button type="button" data-q="1h">In 1 hour</button>
+      <button type="button" data-q="eve">Tonight 6 PM</button>
+      <button type="button" data-q="tmr">Tomorrow 10 AM</button>
+    </div>
+    <p class="fine" id="cbRule"></p>
+    <div class="row"><button id="cbSave" type="button" class="primary">Save</button><button id="cbCancel" type="button" class="ghost">Cancel</button></div>
+  </div>
+</div>
+
+<div id="toast" role="status" hidden></div>
+<div id="xpPop" aria-live="polite" hidden></div>
+<div id="lvlUp" hidden><div class="box"><div class="k">LEVEL UP</div><div class="v" id="lvlNum">2</div><div class="s">Tap to continue</div></div></div>
+
+<script>
+/* TPS Parser — pure parsing logic, no DOM */
+const Parser = (() => {
+  const STATES = new Set("AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY DC PR GU VI".split(" "));
+
+  const STOP = new Set(("sign log search menu home privacy policy terms contact about opt remove view details report " +
+    "background free people find results lookup reverse phone phones address addresses email emails current previous past " +
+    "relatives associates map directions show more less back top next page click here record records public check " +
+    "update claim profile info information county age born wireless landline voip also seen known lives deceased " +
+    "possible neighbors business owner criminal court property login register welcome name").split(" "));
+
+  const SUFFIX = new Set(("st street ave avenue av rd road dr drive ln lane blvd boulevard ct court cir circle way pl place " +
+    "ter terrace trl trail pkwy parkway hwy highway xing crossing loop sq square run pt point pass path pike row walk aly alley " +
+    "bnd bend cv cove holw hollow hts heights mnr manor mdw mdws park plz plaza rdg ridge vw view vly valley grn green gln glen " +
+    "crk creek cres crest tpke expy fwy commons cmns lndg landing").split(" "));
+  const UNIT_KW = /^(apt|apartment|unit|ste|suite|lot|rm|room|bldg|fl|floor|spc|space|trlr)\.?$/i;
+  const DIR = /^(n|s|e|w|ne|nw|se|sw)\.?$/i;
+  const SUFFIX_NAME = /^(jr|sr|ii|iii|iv|v)\.?$/i;
+
+  const titleCase = s => s.toLowerCase().replace(/(^|[\s\-'’])([a-z])/g, (m, a, b) => a + b.toUpperCase())
+    .replace(/\bMc([a-z])/g, (m, c) => "Mc" + c.toUpperCase());
+  const fixCaps = s => (s && s === s.toUpperCase() && /[A-Z]{2}/.test(s)) ? titleCase(s) : s;
+  const clean = s => s.replace(/[\u00a0\t]+/g, " ").replace(/\s+/g, " ").trim();
+
+  function looksLikeName(s) {
+    s = clean(s);
+    if (s.length < 3 || s.length > 60 || /[\d@:|/\\]/.test(s)) return false;
+    const w = s.split(" ");
+    if (w.length < 2 || w.length > 5) return false;
+    if (w.some(x => STOP.has(x.toLowerCase().replace(/[.,]/g, "")))) return false;
+    return w.every(x => /^[A-Z][A-Za-z'’.\-]*,?$/.test(x) || /^(de|la|van|von|del|da|di|le|du)$/i.test(x));
+  }
+
+  function findName(lines, ageIdx) {
+    for (const l of lines) {
+      const m = l.match(/^\s*(?:full\s+)?name\s*[:\-]\s*(.+)$/i);
+      if (m && looksLikeName(m[1])) return clean(m[1]);
+    }
+    const strip = l => clean(l.replace(/[,\s]*\b(age|aged)\b.*$/i, "").replace(/,$/, ""));
+    if (ageIdx >= 0) {
+      for (let i = ageIdx; i >= Math.max(0, ageIdx - 4); i--) {
+        const c = strip(lines[i]);
+        if (looksLikeName(c)) return c;
+      }
+    }
+    for (let i = 0; i < Math.min(lines.length, 25); i++) {
+      const c = strip(lines[i]);
+      if (looksLikeName(c)) return c;
+    }
+    return "";
+  }
+
+  function findAge(lines) {
+    for (let i = 0; i < lines.length; i++) {
+      const m = lines[i].match(/\bAge[d]?\s*[:\-]?\s*(\d{1,3})\b/i) || lines[i].match(/\b(\d{1,3})\s*(?:years?\s*old|yrs?\s*old)\b/i);
+      if (m && +m[1] > 0 && +m[1] < 125) return { age: m[1], idx: i };
+    }
+    return { age: "", idx: -1 };
+  }
+
+  // Section headers on a TruePeopleSearch profile page
+  const TPS_HEADER = /^(also seen as|current address|phone numbers|email addresses|current address property details|previous addresses|possible relatives|possible associates|education and employment|full background report|criminal records report|background report|sponsored links?|advertisement|frequently asked questions|disclaimers|background profile on .*)$/i;
+  function findPhones(lines) {
+    const re = /(?:\+?1[\s.\-]?)?\(?\b([2-9]\d{2})\)?[\s.\-]?([2-9]\d{2})[\s.\-]?(\d{4})\b/g;
+    // If the page has a "Phone Numbers" section, only read numbers from inside it
+    let from = 0, to = lines.length;
+    const ps = lines.findIndex(l => /^\s*phone numbers\s*$/i.test(l));
+    if (ps >= 0) {
+      from = ps + 1;
+      const pe = lines.findIndex((l, i) => i > ps && TPS_HEADER.test(l.trim()));
+      if (pe > 0) to = pe;
+    }
+    const found = [];
+    lines.forEach((l, i) => {
+      if (i < from || i >= to) return;
+      let m; re.lastIndex = 0;
+      while ((m = re.exec(l))) found.push({ digits: m[1] + m[2] + m[3], idx: i });
+    });
+    // Each number's details are the lines under it, up to the next number (max 8 lines)
+    found.forEach((p, k) => {
+      const stop = Math.min(found[k + 1] ? found[k + 1].idx : lines.length, p.idx + 9);
+      const own = lines[p.idx], below = lines.slice(p.idx + 1, stop);
+      const tm = own.match(/\b(wireless|mobile|cell|landline|voip)\b/i) || (below[0] || "").match(/^\s*-?\s*(wireless|mobile|cell|landline|voip)\b/i);
+      const t = tm ? tm[1].toLowerCase() : "";
+      p.type = t === "mobile" || t === "cell" ? "Wireless" : t ? titleCase(t) : "";
+      p.primary = [own, ...below].some(x => /possible\s+primary\s+phone/i.test(x));
+      p.inactive = [own, ...below].some(x => /^\s*-?\s*inactive\s*$/i.test(x) || /\s-\s*inactive\s*$/i.test(x));
+    });
+    // The same number can appear more than once: merge what each copy says about it
+    const merged = [], byD = new Map();
+    found.forEach(p => {
+      const m = byD.get(p.digits);
+      if (!m) { byD.set(p.digits, p); merged.push(p); return; }
+      if (!m.type && p.type) m.type = p.type;
+      m.primary = m.primary || p.primary;
+      m.inactive = m.inactive || p.inactive;
+    });
+    found.length = 0; found.push(...merged);
+    // Only active Wireless numbers are accepted (no Landline, no VoIP, no unlabeled, nothing Inactive)
+    const ok = found.filter(p => p.type === "Wireless" && !p.inactive);
+    // First choice: the Possible Primary Phone if it's an active Wireless; otherwise the first active Wireless on the page
+    const pi = ok.findIndex(p => p.primary);
+    if (pi > 0) ok.unshift(ok.splice(pi, 1)[0]);
+    return ok;
+  }
+
+  function splitStreetCity(s) {
+    const t = s.split(" ");
+    let unitCut = -1, sufCut = -1;
+    for (let i = 1; i < t.length - 1; i++) {
+      const w = t[i].replace(/[.,]$/, "").toLowerCase();
+      if (t[i].startsWith("#")) unitCut = t[i] === "#" ? i + 1 : i;
+      else if (UNIT_KW.test(t[i]) && i + 1 < t.length - 1) { unitCut = i + 1; i++; }
+      else if (SUFFIX.has(w) && i >= 1) {
+        sufCut = i;
+        if (DIR.test(t[i + 1] || "") && i + 1 < t.length - 1) sufCut = i + 1;
+      }
+    }
+    const cut = unitCut >= 0 ? unitCut : sufCut;
+    if (cut < 0 || cut >= t.length - 1) return null;
+    return { street: t.slice(0, cut + 1).join(" "), city: t.slice(cut + 1).join(" ") };
+  }
+
+  const isStreet = s => /^\d+[A-Za-z]?\s+\S/.test(s) || /^p\.?\s?o\.?\s*box\b/i.test(s);
+
+  function findAddresses(lines) {
+    const out = [];
+    const re = /^(.*?)\s*,?\s*\b([A-Z]{2})\s+(\d{5}(?:-\d{4})?)\b/;
+    lines.forEach((raw, i) => {
+      const l = clean(raw);
+      const m = l.match(re);
+      if (!m || !STATES.has(m[2])) return;
+      let before = clean(m[1]).replace(/,$/, "");
+      before = before.replace(/^(lives in|current address|address|located in|resides in)\s*[:\-]?\s*/i, "");
+      let street = "", city = "";
+      if (before.includes(",")) {
+        const k = before.lastIndexOf(",");
+        street = clean(before.slice(0, k)); city = clean(before.slice(k + 1));
+        if (!isStreet(street)) { city = before; street = ""; }
+      } else if (isStreet(before)) {
+        const sp = splitStreetCity(before);
+        if (sp) ({ street, city } = sp); else { street = before; }
+      } else {
+        city = before;
+      }
+      if (!street && i > 0) {
+        let p = clean(lines[i - 1]);
+        if (/^(apt|apartment|unit|ste|suite|#|lot)\b/i.test(p) && i > 1 && isStreet(clean(lines[i - 2]))) {
+          p = clean(lines[i - 2]) + " " + p;
+        }
+        if (isStreet(p) && !re.test(p)) street = p.replace(/,$/, "");
+      }
+      if (!city) return;
+      out.push({ street: fixCaps(street), city: fixCaps(city), state: m[2], zip: m[3], idx: i });
+    });
+    return out;
+  }
+
+  function findCounty(lines, nearIdx) {
+    const re = /\b([A-Z][A-Za-z.'’\-]*(?:\s+[A-Z][A-Za-z.'’\-]*){0,3})\s+(County|Parish|Borough)\b/gi;
+    const found = [];
+    lines.forEach((l, i) => {
+      let m; re.lastIndex = 0;
+      while ((m = re.exec(l))) {
+        let words = m[1].split(/\s+/);
+        while (words.length && STOP.has(words[0].toLowerCase())) words.shift();
+        if (!words.length || !/^[A-Z]/.test(words[0])) continue;
+        found.push({ name: fixCaps(words.join(" ")) + " " + titleCase(m[2]), idx: i });
+      }
+    });
+    if (!found.length) return "";
+    if (nearIdx >= 0) {
+      const after = found.find(c => c.idx >= nearIdx && c.idx <= nearIdx + 6);
+      if (after) return after.name;
+    }
+    return found[0].name;
+  }
+
+  function parse(text) {
+    const lines = text.split(/\r?\n/).map(l => l.replace(/[\u00a0\t]/g, " ")).filter(l => l.trim());
+    const { age, idx: ageIdx } = findAge(lines);
+    const name = fixCaps(findName(lines, ageIdx));
+    const phones = findPhones(lines);
+    const addrs = findAddresses(lines);
+    const curIdx = lines.findIndex(l => /^\s*current (home )?address/i.test(l));
+    let addr = null;
+    const withStreet = addrs.filter(a => a.street);
+    const pool = withStreet.length ? withStreet : addrs;
+    if (curIdx >= 0) addr = pool.find(a => a.idx > curIdx) || null;
+    if (!addr) addr = pool[0] || null;
+    const county = findCounty(lines, addr ? addr.idx : -1);
+    return {
+      name, age,
+      phones,
+      address: addr ? (addr.street ? addr.street + ", " : "") + `${addr.city}, ${addr.state} ${addr.zip}` : "",
+      county
+    };
+  }
+
+  function firstLast(name) {
+    const w = name.split(" ").filter(Boolean);
+    if (w.length <= 2) return name;
+    let k = SUFFIX_NAME.test(w[w.length - 1]) ? w.length - 2 : w.length - 1;
+    while (k > 1 && /^(de|la|van|von|del|da|di|le|du)$/i.test(w[k - 1])) k--;
+    return [w[0], ...w.slice(k)].join(" ");
+  }
+
+  const fmtPhone = (d, style) => !d ? "" : style === "pretty" ? `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}` : d;
+
+  return { parse, firstLast, fmtPhone };
+})();
+
+/* ranking.js — age tier classifier (inline version). Pure, no I/O, no deps. */
+const Ranking = (() => {
+  const TIER_TABLE = [
+    { rank:0, id:'UNDERGRAD', lo:0,  hi:19,  label:'UNDERGRAD (19 & under)', short:'Undergrad' },
+    { rank:1, id:'FRESHMAN',  lo:20, hi:26,  label:'FRESHMAN (20–26)',       short:'Freshman'  },
+    { rank:2, id:'SOPHOMORE', lo:27, hi:35,  label:'SOPHOMORE (27–35)',      short:'Sophomore' },
+    { rank:3, id:'JUNIOR',    lo:36, hi:49,  label:'JUNIOR (36–49)',         short:'Junior'    },
+    { rank:4, id:'SENIOR',    lo:50, hi:999, label:'SENIOR (50+)',           short:'Senior'    },
+  ];
+  const GROUP_AGE_UNKNOWN = 'AGE_UNKNOWN';
+
+  function ageOf(age) {
+    if (age === null || age === undefined) return null;
+    const s = String(age).trim();
+    if (s === '') return null;
+    const n = Number(s);
+    if (!Number.isFinite(n) || n < 0) return null;   // negative or junk = unknown
+    return Math.floor(n);
+  }
+  function classify(age) {
+    const a = ageOf(age);
+    if (a !== null) for (const t of TIER_TABLE) {
+      if (a >= t.lo && a <= t.hi) return { tier:t.id, rank:t.rank, group:t.id, sortKey:t.rank };
+    }
+    return { tier:null, rank:null, group:GROUP_AGE_UNKNOWN, sortKey:9 };   // includes 1000+
+  }
+  const byId = id => TIER_TABLE.find(t => t.id === id);
+  const groupLabel = g => g === GROUP_AGE_UNKNOWN ? 'Age unknown' : (byId(g)?.label ?? g);
+  const groupShort = g => g === GROUP_AGE_UNKNOWN ? 'Unknown' : (byId(g)?.short ?? g);
+  // Sorts GROUP IDs ('FRESHMAN', 'AGE_UNKNOWN', ...) by rank
+  const compareGroups = (a, b) => ((byId(a)?.rank ?? 9) - (byId(b)?.rank ?? 9)) || String(a).localeCompare(String(b));
+  const tierOf = age => classify(age).tier ?? '';
+  const rankOf = age => classify(age).rank;
+
+  const FIXTURES = [0,19,20,26,26.9,27,35,36,49,50,999,1000,'34',null,'',-5,'abc',' 41 '];
+  const EXPECTED = ['UNDERGRAD','UNDERGRAD','FRESHMAN','FRESHMAN','FRESHMAN','SOPHOMORE','SOPHOMORE','JUNIOR','JUNIOR',
+                    'SENIOR','SENIOR','AGE_UNKNOWN','SOPHOMORE','AGE_UNKNOWN','AGE_UNKNOWN','AGE_UNKNOWN','AGE_UNKNOWN','JUNIOR'];
+  function selfTest() {
+    const got = FIXTURES.map(a => classify(a).group);
+    return { ok: got.every((g, i) => g === EXPECTED[i]), got, expected: EXPECTED };
+  }
+  const GROUPS = [...TIER_TABLE.map(t => t.id), GROUP_AGE_UNKNOWN];
+  return { TIER_TABLE, GROUPS, GROUP_AGE_UNKNOWN, classify, ageOf, tierOf, rankOf, groupLabel, groupShort, compareGroups, selfTest };
+})();
+/* Reads a pasted TruePeopleSearch profile into categories. */
+const TPSProfile = (() => {
+  const SECTIONS = {
+    "also seen as": "aka", "current address": "current", "phone numbers": "phones", "email addresses": "emails",
+    "current address property details": "property", "previous addresses": "previous",
+    "possible relatives": "relatives", "possible associates": "associates", "education and employment": "work",
+  };
+  const JUNK = /^(full background report|criminal records report|background report|sponsored links?|advertisement|frequently asked questions|disclaimers|need more data in real-time\?)$/i;
+  const DESC = /^(includes|this is the most|may include|all previously|property record details)\b/i;
+  const PHONE = /\(?\b([2-9]\d{2})\)?[\s.\-]?([2-9]\d{2})[\s.\-]?(\d{4})\b/;
+  const CITY = /^(.+?),\s*([A-Z]{2})\s+(\d{5}(?:-\d{4})?)$/;
+  const isStreet = s => /^\d+[A-Za-z]?\s+\S/.test(s) || /^p\.?\s?o\.?\s*box\b/i.test(s);
+  const isDates = s => /^\(.*\)$/.test(s);
+  const isCounty = s => /\b(county|parish|borough)$/i.test(s);
+
+  function parse(text) {
+    const lines = text.split(/\r?\n/).map(l => l.replace(/[\u00a0\t]/g, " ").trim());
+    const buckets = { top: [] };
+    let cur = "top";
+    for (const l of lines) {
+      if (!l) continue;
+      const key = l.toLowerCase();
+      if (SECTIONS[key]) { cur = SECTIONS[key]; buckets[cur] = buckets[cur] || []; continue; }
+      if (/^background profile on /i.test(l)) { cur = "bio"; buckets.bio = []; continue; }
+      if (JUNK.test(l)) { cur = null; continue; }
+      if (!cur) continue;
+      if (cur !== "top" && cur !== "bio" && DESC.test(l) && l.endsWith(".")) continue;
+      buckets[cur].push(l);
+    }
+    const p = {};
+
+    // Top summary: name, age/born, lives in
+    const top = buckets.top.filter(l => !/^truepeoplesearch$/i.test(l) && !l.includes(" / "));
+    const ai = top.findIndex(l => /^age\s+\d+/i.test(l));
+    if (ai >= 0) {
+      const m = top[ai].match(/^age\s+(\d+)(?:,\s*born\s+(.+))?$/i);
+      p.age = m ? m[1] : ""; p.born = m && m[2] ? m[2] : "";
+      p.name = ai > 0 ? top[ai - 1] : "";
+    }
+    const li = top.find(l => /^lives in /i.test(l));
+    if (li) p.livesIn = li.replace(/^lives in /i, "");
+
+    if (buckets.aka) p.aka = buckets.aka.filter(l => !PHONE.test(l));
+
+    const addrBlocks = arr => {
+      const out = []; let a = null;
+      for (const l of arr) {
+        if (isStreet(l) && !CITY.test(l)) { a = { street: l }; out.push(a); continue; }
+        if (!a) continue;
+        if (CITY.test(l) && !a.city) a.city = l;
+        else if (isCounty(l)) a.county = l;
+        else if (isDates(l)) a.dates = l.slice(1, -1);
+        else if (/[$|]/.test(l)) a.details = l;
+      }
+      return out.filter(x => x.city);
+    };
+    if (buckets.current) p.current = addrBlocks(buckets.current)[0] || null;
+    if (buckets.previous) p.previous = addrBlocks(buckets.previous);
+
+    if (buckets.phones) {
+      p.phones = []; let ph = null;
+      for (const l of buckets.phones) {
+        const m = l.match(PHONE);
+        if (m) {
+          const type = (l.match(/-\s*(wireless|landline|voip|mobile|cell)\b/i) || [])[1] || "";
+          ph = { number: `(${m[1]}) ${m[2]}-${m[3]}`, digits: m[1] + m[2] + m[3], type: type ? type[0].toUpperCase() + type.slice(1).toLowerCase() : "", notes: [] };
+          p.phones.push(ph); continue;
+        }
+        if (!ph) continue;
+        if (/possible primary phone/i.test(l)) ph.primary = true;
+        else if (/^inactive$/i.test(l)) ph.inactive = true;
+        else if (/^last reported /i.test(l)) ph.lastReported = l.replace(/^last reported /i, "");
+        else ph.notes.push(l);
+      }
+      p.phones.forEach(x => { x.carrier = x.notes.join(", "); delete x.notes; });
+    }
+    if (buckets.emails) p.emails = buckets.emails.filter(l => /@/.test(l));
+
+    if (buckets.property) {
+      const arr = buckets.property.slice();
+      if (arr[0] && isStreet(arr[0])) arr.shift();
+      if (arr[0] && CITY.test(arr[0])) arr.shift();
+      p.property = [];
+      for (let i = 0; i + 1 < arr.length; i += 2) p.property.push([arr[i], arr[i + 1]]);
+    }
+
+    const people = arr => {
+      const out = [];
+      for (const l of arr) {
+        const m = l.match(/^age\s+(\d+)$/i);
+        if (m && out.length && !out[out.length - 1].age) out[out.length - 1].age = m[1];
+        else if (!m) out.push({ name: l, age: "" });
+      }
+      return out;
+    };
+    if (buckets.relatives) p.relatives = people(buckets.relatives);
+    if (buckets.associates) p.associates = people(buckets.associates);
+
+    if (buckets.work) {
+      p.work = []; let w = null;
+      const arr = buckets.work;
+      for (let i = 0; i + 1 < arr.length; i += 2) {
+        const k = arr[i], v = arr[i + 1];
+        if (/^(company|college|school)$/i.test(k)) { w = { kind: /company/i.test(k) ? "job" : "school", items: [] }; p.work.push(w); }
+        if (!w) continue;
+        w.items.push([k, v]);
+      }
+    }
+    if (buckets.bio) p.bio = buckets.bio.filter(l => !/partner site/i.test(l) && l.length > 30);
+    return p;
+  }
+  const looksLikeTPS = text => /\n\s*phone numbers\s*\n/i.test(text) && /\n\s*current address\s*\n/i.test(text);
+  return { parse, looksLikeTPS };
+})();
+</script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+
+  /* ---------- storage ---------- */
+  let storageOK = true;
+  let onStoreSet = null;   // cloud sync listens here
+  const store = {
+    get: k => { try { return localStorage.getItem(k); } catch { storageOK = false; return null; } },
+    set: (k, v) => { try { localStorage.setItem(k, v); if (onStoreSet) onStoreSet(k); return true; } catch { storageOK = false; return false; } }
+  };
+  const NOTES_KEY = "tps-notes-v1";
+  let notes = [];
+  try { notes = JSON.parse(store.get(NOTES_KEY) || "[]"); } catch { notes = []; }
+  const saveNotes = () => { if (!store.set(NOTES_KEY, JSON.stringify(notes))) toast("Couldn't save. Storage is blocked in this browser."); };
+  const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const sorted = () => [...notes].sort((a, b) => b.updated - a.updated);
+  const entryCount = body => body.trim() ? body.trim().split(/\n[ \t]*\n/).length : 0;
+  const when = t => {
+    const d = new Date(t), now = new Date();
+    return d.toDateString() === now.toDateString()
+      ? d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+      : d.toLocaleDateString([], { month: "short", day: "numeric" });
+  };
+  function createNote(title) {
+    const n = { id: newId(), title: title.trim() || "Untitled", body: "", updated: Date.now() };
+    notes.push(n); saveNotes(); return n;
+  }
+  function appendToNote(n, text) {
+    const body = n.body.replace(/\s+$/, "");
+    n.body = body ? body + "\n\n" + text : text;   // groups separated by one blank line
+    n.updated = Date.now(); saveNotes();
+  }
+
+  /* ---------- helpers ---------- */
+  let toastTimer;
+  function toast(msg) {
+    const t = $("toast"); t.textContent = msg; t.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.hidden = true, 2000);
+  }
+  async function writeClip(text) {
+    try { await navigator.clipboard.writeText(text); return true; } catch {}
+    const ta = document.createElement("textarea");
+    ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    let ok = false; try { ok = document.execCommand("copy"); } catch {}
+    ta.remove(); return ok;
+  }
+  function noteButton(n, onClick) {
+    const li = document.createElement("li");
+    const b = document.createElement("button"); b.type = "button";
+    const t = document.createElement("span"); t.className = "t"; t.textContent = n.title;
+    const c = entryCount(n.body);
+    const m = document.createElement("span"); m.className = "m";
+    m.textContent = `${c} ${c === 1 ? "entry" : "entries"}, edited ${when(n.updated)}`;
+    b.append(t, m, tierBar(n.body)); b.onclick = onClick; li.appendChild(b); return li;
+  }
+
+  /* ---------- game engine: XP, levels, daily goal, streaks, achievements ---------- */
+  const XP_KEY = "tps-xp-v1", ACH_KEY = "tps-ach-v1";
+  const XP_BASE = 15, XP_FULL = 0, COMBO_WINDOW = 3 * 60 * 1000, COMBO_STEP = 2, COMBO_MAX_STEPS = 5;
+  let xpLog = [], ach = {};
+  try { xpLog = JSON.parse(store.get(XP_KEY) || "[]"); } catch { xpLog = []; }
+  try { ach = JSON.parse(store.get(ACH_KEY) || "{}"); } catch { ach = {}; }
+  const saveXP = () => store.set(XP_KEY, JSON.stringify(xpLog));
+
+  /* ---------- point table: change these numbers to rebalance the game ---------- */
+  // Higher ranks are harder to close, so successes with them pay more (other outcomes aren't multiplied).
+  const RANK_MULT      = { UNDERGRAD: 1, FRESHMAN: 1.25, SOPHOMORE: 1.5, JUNIOR: 2, SENIOR: 2.5, AGE_UNKNOWN: 1 };
+  const OUTCOMES = {
+    no_answer:    { label: "No answer",                 pts: 2  },
+    voicemail:    { label: "Straight to voicemail",     pts: 2  },   // same as no answer
+    cb_voicemail: { label: "Left voicemail, call back", pts: 4  },
+    cb_answered:  { label: "Answered, call back",       pts: 10 },
+    success:      { label: "Successful",                pts: 40 },
+    dnc:          { label: "Trash",                     pts: 0  },   // kept in your notes, blocks re-adding
+  };
+  // Amount secured on a success multiplies the success points (on top of the rank value).
+  const AMOUNT_TIERS = [
+    { min: 0,     label: "Under $100",       mult: 0.5 },
+    { min: 100,   label: "$100–$999",        mult: 1   },
+    { min: 1000,  label: "$1,000–$4,999",    mult: 1.5 },
+    { min: 5000,  label: "$5,000–$9,999",    mult: 2   },
+    { min: 10000, label: "$10,000–$14,999",  mult: 3   },
+    { min: 15000, label: "$15,000–$19,999",  mult: 4   },
+    { min: 20000, label: "$20,000–$49,999",  mult: 5   },
+    { min: 50000, label: "$50,000+",         mult: 8   },
+  ];
+  const amountTier = amt => [...AMOUNT_TIERS].reverse().find(a => (amt || 0) >= a.min) || AMOUNT_TIERS[0];
+  const money = n => "$" + Math.round(n || 0).toLocaleString();
+  const CB_ONTIME_BONUS = 5, CB_LATE_PENALTY = 5;           // keeping or missing a scheduled call back
+  const CB_EARLY = 30 * 60e3, CB_GRACE = 2 * 3600e3;        // on time = 30 min early to 2 hours late
+  const REPEAT_WINDOW = 10 * 60e3;                          // same button on same card within 10 min = no points
+
+  const PROF_KEY = "tps-profiles-v1";
+  let profiles = {};
+  try { profiles = JSON.parse(store.get(PROF_KEY) || "{}"); } catch { profiles = {}; }
+  // Save the full TruePeopleSearch page (sorted into sections) for this person
+  function saveProfile(fp, text) {
+    if (!fp || !TPSProfile.looksLikeTPS(text)) return false;
+    const h = hashText(text);
+    if (profiles[fp] && profiles[fp].h === h) return true;
+    profiles[fp] = { t: Date.now(), h, p: TPSProfile.parse(text) };
+    if (!store.set(PROF_KEY, JSON.stringify(profiles))) { delete profiles[fp]; toast("Phone storage is full. Profile not saved."); return false; }
+    return true;
+  }
+  function hashText(s) { let h = 5381; for (let i = 0; i < s.length; i++) h = (h * 33 ^ s.charCodeAt(i)) >>> 0; return h.toString(36) + s.length; }
+  const WORK_KEY = "tps-work-v1";
+  let work = {};
+  try { work = JSON.parse(store.get(WORK_KEY) || "{}"); } catch { work = {}; }
+  const saveWork = () => store.set(WORK_KEY, JSON.stringify(work));
+  const outcomePts = (o, tier) => Math.round(OUTCOMES[o].pts * (o === "success" ? (RANK_MULT[tier] || 1) : 1));
+  const isDNC = fp => { const ev = work[fp]?.events; return !!ev && ev.length > 0 && ev[ev.length - 1].o === "dnc"; };
+
+  // Score one card from its history. Recomputed every time, so Undo just removes the event.
+  function cardScore(events, tier, now = Date.now()) {
+    const m = RANK_MULT[tier] || 1, lastSame = {};
+    let pts = 0, won = false, cb = null, onTime = 0, late = 0, calls = 0;
+    for (const e of events) {
+      if (cb !== null) {                                      // this action answers the pending call back
+        if (e.t > cb + CB_GRACE) { pts -= CB_LATE_PENALTY; late++; }
+        else if (e.t >= cb - CB_EARLY && e.o !== "dnc") { pts += CB_ONTIME_BONUS; onTime++; }
+        cb = null;
+      }
+      let p = OUTCOMES[e.o] ? OUTCOMES[e.o].pts : 0;
+      if (lastSame[e.o] && e.t - lastSame[e.o] < REPEAT_WINDOW) p = 0;
+      if (e.o === "success") { p = won ? 0 : p * (e.amt === undefined ? 1 : amountTier(e.amt).mult); won = true; }
+      if (e.o !== "dnc") calls++;
+      pts += Math.round(e.o === "success" ? p * m : p);   // rank value only multiplies successes
+      lastSame[e.o] = e.t;
+      if (e.o === "cb_voicemail" || e.o === "cb_answered") cb = e.cb;
+    }
+    const overdue = cb !== null && now > cb + CB_GRACE;
+    if (overdue) { pts -= CB_LATE_PENALTY; late++; }
+    const last = events[events.length - 1];
+    const status = !last ? "tocall" : last.o === "success" ? "done" : last.o === "dnc" ? "hidden" : cb !== null ? "callback" : "tocall";
+    return { pts, status, cb, overdue, onTime, late, calls, won, last };
+  }
+
+  // Every entry in your notes, read from the note text (Name/Age/Phone #/Address/County lines)
+  function noteEntries() {
+    const out = [], seen = new Set();
+    notes.forEach(n => {
+      if (!n.body.trim()) return;
+      n.body.trim().split(/\n[ \t]*\n/).forEach(b => {
+        const get = k => { const m = b.match(new RegExp("^\\s*" + k + "\\s*:\\s*(.*)$", "im")); const v = m ? m[1].trim() : ""; return /^n\/?a$/i.test(v) ? "" : v; };
+        const f = { name: get("Name"), age: get("Age"), phone: get("Phone\\s*#?"), address: get("Address"), county: get("County") };
+        const fp = fingerprint(f);
+        if (!fp || seen.has(fp)) return;
+        seen.add(fp);
+        out.push({ ...f, fp, noteId: n.id, noteTitle: n.title, order: out.length, tier: Ranking.classify(f.age).group });
+      });
+    });
+    return out;
+  }
+  const saveAch = () => store.set(ACH_KEY, JSON.stringify(ach));
+  const goal = () => Math.max(1, parseInt(store.get("goal") || "25", 10) || 25);
+  const dayKey = t => { const d = new Date(t); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); };
+  const buzz = p => { try { navigator.vibrate && navigator.vibrate(p); } catch {} };
+
+  // Who is this entry? Phone number if there is one, otherwise the name.
+  function fingerprint(f) {
+    const d = (f.phone || "").replace(/\D/g, "");
+    if (d.length >= 10) return "p:" + d.slice(-10);
+    const n = (f.name || "").trim().toLowerCase();
+    return n ? "n:" + n : "";
+  }
+  function corpus() {
+    const all = notes.map(n => n.body).join("\n");
+    return { digits: all.split("\n").map(l => l.replace(/\D/g, "")).join("|"), lower: all.toLowerCase() };
+  }
+  const isPresent = (fp, c) => fp.startsWith("p:") ? c.digits.includes(fp.slice(2)) : c.lower.includes(fp.slice(2));
+
+  function levelFor(xp) {
+    let level = 1, need = 100;
+    while (xp >= need) { xp -= need; level++; need = 100 + 50 * (level - 1); }
+    return { level, into: xp, need };
+  }
+
+  // Everything is recomputed from the log + what's actually in your notes, so edits/deletes stay honest.
+  function stats() {
+    const c = corpus(), seen = new Set(), live = [];
+    for (const e of xpLog) if (!seen.has(e.fp) && isPresent(e.fp, c)) { seen.add(e.fp); live.push(e); }
+    const xp = live.reduce((s, e) => s + e.xp, 0);
+    const perDay = new Map();
+    live.forEach(e => perDay.set(dayKey(e.t), (perDay.get(dayKey(e.t)) || 0) + 1));
+    const g = goal(), met = k => (perDay.get(k) || 0) >= g;
+    const today = perDay.get(dayKey(Date.now())) || 0;
+    const d = new Date(); d.setHours(12, 0, 0, 0);
+    if (!met(dayKey(d))) d.setDate(d.getDate() - 1);          // today not done yet: streak runs through yesterday
+    let streak = 0;
+    while (met(dayKey(d))) { streak++; d.setDate(d.getDate() - 1); }
+    let best = 0, run = 0, prev = null;
+    [...perDay.keys()].filter(met).map(k => { const [y, m, dd] = k.split("-").map(Number); return new Date(y, m - 1, dd, 12).getTime(); })
+      .sort((a, b) => a - b).forEach(ts => {
+        run = prev !== null && Math.round((ts - prev) / 864e5) === 1 ? run + 1 : 1;
+        best = Math.max(best, run); prev = ts;
+      });
+    const todayTiers = new Set(live.filter(e => dayKey(e.t) === dayKey(Date.now())).map(e => e.tier));
+    let workPts = 0, calls = 0, wins = 0, seniorWins = 0, onTime = 0, due = 0, callsToday = 0, secured = 0, securedToday = 0, bestDeal = 0;
+    const now = Date.now(), tk = dayKey(now);
+    for (const e of noteEntries()) {
+      const w = work[e.fp];
+      if (!w || !w.events.length) continue;
+      const sc = cardScore(w.events, e.tier, now);
+      workPts += sc.pts; calls += sc.calls; onTime += sc.onTime;
+      if (sc.won) { wins++; if (e.tier === "SENIOR") seniorWins++; }
+      if (sc.status === "callback" && sc.cb <= now) due++;
+      callsToday += w.events.filter(x => x.o !== "dnc" && dayKey(x.t) === tk).length;
+      const win = w.events.find(x => x.o === "success");
+      if (win && sc.won && win.amt) { secured += win.amt; bestDeal = Math.max(bestDeal, win.amt); if (dayKey(win.t) === tk) securedToday += win.amt; }
+    }
+    const total = Math.max(0, xp + workPts);
+    return { xp: total, addXp: xp, workPts, calls, wins, seniorWins, onTime, due, callsToday, secured, securedToday, bestDeal,
+             entries: live.length, live, today, goal: g, streak, best, todayTiers, ...levelFor(total) };
+  }
+
+  // combo = entries in a row within 3 min. The meter starts on the 2nd entry (x1, no bonus);
+  // the bonus begins on the 3rd entry (x2 = +2), then +2 more per entry.
+  const comboShown = c => Math.max(0, (c || 1) - 1);
+  function preview(f) {
+    const fp = fingerprint(f);
+    const missing = Object.keys(f).filter(k => !f[k] || !f[k].trim());
+    if ((f.phone || "").replace(/\D/g, "").length < 10 && !missing.includes("phone")) missing.push("phone");
+    if (f.age && !/^\s*\d{1,3}\s*$/.test(f.age) && !missing.includes("age")) missing.push("age");
+    if (missing.length) return { xp: 0, why: "Incomplete: needs " + missing.map(k => ({ name: "name", age: "age", phone: "a 10-digit phone", address: "address", county: "county" })[k]).join(", "), block: true };
+    if (isDNC(fp)) return { xp: 0, why: "In your trash", block: true };
+    if (isPresent(fp, corpus())) return { xp: 0, why: "Duplicate: already in your notes", block: true };
+    const prev = xpLog[xpLog.length - 1];
+    const combo = prev && Date.now() - prev.t <= COMBO_WINDOW ? (prev.combo || 1) + 1 : 1;
+    const full = Object.values(f).every(v => v && v.trim());
+    const xp = XP_BASE + (full ? XP_FULL : 0) + Math.min(Math.max(comboShown(combo) - 1, 0), COMBO_MAX_STEPS) * COMBO_STEP;
+    return { xp, full, combo, fp };
+  }
+
+  const ACHIEVEMENTS = [
+    { id: "first",    n: "First Entry",   d: "Add your first entry",            ok: s => s.entries >= 1 },
+    { id: "ten",      n: "Warmed Up",     d: "10 entries in your notes",        ok: s => s.entries >= 10 },
+    { id: "hundred",  n: "Century",       d: "100 entries in your notes",       ok: s => s.entries >= 100 },
+    { id: "fivehund", n: "Archivist",     d: "500 entries in your notes",       ok: s => s.entries >= 500 },
+    { id: "bigfish",  n: "Big Fish",      d: "Secure $10,000+ in one deal",     ok: s => s.bestDeal >= 10000 },
+    { id: "whale",    n: "Whale",         d: "Secure $50,000+ in one deal",     ok: s => s.bestDeal >= 50000 },
+    { id: "combo5",   n: "On a Roll",     d: "Reach a x5 combo",                ok: (s, e) => !!e && comboShown(e.combo) >= 5 },
+    { id: "roster",   n: "Full Roster",   d: "All 5 ranks in one day",          ok: s => ["UNDERGRAD","FRESHMAN","SOPHOMORE","JUNIOR","SENIOR"].every(t => s.todayTiers.has(t)) },
+    { id: "goal",     n: "Goal Getter",   d: "Hit your daily goal",             ok: s => s.today >= s.goal },
+    { id: "streak3",  n: "Heating Up",    d: "3-day goal streak",               ok: s => s.streak >= 3 },
+    { id: "streak7",  n: "On Fire",       d: "7-day goal streak",               ok: s => s.streak >= 7 },
+    { id: "lvl5",     n: "Level 5",       d: "Reach level 5",                   ok: s => s.level >= 5 },
+    { id: "lvl10",    n: "Level 10",      d: "Reach level 10",                  ok: s => s.level >= 10 },
+    { id: "win1",     n: "First Win",     d: "Your first successful call",      ok: s => s.wins >= 1 },
+    { id: "win10",    n: "Closer",        d: "10 successful calls",             ok: s => s.wins >= 10 },
+    { id: "seniorwin",n: "Senior Closer", d: "A success with a Senior",         ok: s => s.seniorWins >= 1 },
+    { id: "dial50",   n: "Dialer",        d: "Log 50 calls",                    ok: s => s.calls >= 50 },
+    { id: "ontime5",  n: "Right On Time", d: "5 call backs made on time",       ok: s => s.onTime >= 5 },
+  ];
+  function checkAchievements(s, ev) {
+    const fresh = ACHIEVEMENTS.filter(a => !ach[a.id] && a.ok(s, ev));
+    fresh.forEach(a => ach[a.id] = Date.now());
+    if (fresh.length) saveAch();
+    return fresh;
+  }
+
+  // Called when an entry is added to a note
+  function award(f, applyAdd) {
+    const before = stats();
+    const p = preview(f);
+    applyAdd();
+    if (!p.xp) { refreshHUD(); return { xp: 0, why: p.why }; }
+    const ev = { t: Date.now(), fp: p.fp, xp: p.xp, tier: Ranking.classify(f.age).group, full: p.full, combo: p.combo };
+    xpLog.push(ev); saveXP();
+    const after = stats();
+    const unlocked = checkAchievements(after, ev);
+    refreshHUD();
+    celebrate(ev, before, after, unlocked);
+    return ev;
+  }
+
+  function celebrate(ev, before, after, unlocked) {
+    const pop = $("xpPop");
+    pop.innerHTML = "";
+    pop.append(`${ev.xp >= 0 ? "+" : ""}${ev.xp} XP`);
+    pop.classList.toggle("neg", ev.xp < 0);
+    const small = document.createElement("small");
+    small.textContent = ev.line || [Ranking.groupShort(ev.tier), ev.full ? "Full card" : "", comboShown(ev.combo) >= 2 ? `Combo x${comboShown(ev.combo)}` : ""].filter(Boolean).join("  ");
+    pop.appendChild(small);
+    pop.hidden = false; pop.classList.remove("go"); void pop.offsetWidth; pop.classList.add("go");
+    setTimeout(() => pop.hidden = true, 1150);
+    buzz(comboShown(ev.combo) >= 2 ? [15, 40, 15] : 15);
+    let delay = 900;
+    if (after.level > before.level) {
+      setTimeout(() => { $("lvlNum").textContent = after.level; $("lvlUp").hidden = false; buzz([40, 60, 40, 60, 120]); }, delay);
+      setTimeout(() => $("lvlUp").hidden = true, delay + 2600);
+      delay += 2800;
+    }
+    if (before.today < before.goal && after.today >= after.goal) { setTimeout(() => toast(`Daily goal hit: ${after.goal} entries`), delay); delay += 2200; }
+    unlocked.forEach(a => { setTimeout(() => { toast(`★ Achievement: ${a.n}`); buzz(30); }, delay); delay += 2200; });
+  }
+  $("lvlUp").onclick = () => $("lvlUp").hidden = true;
+
+  function refreshHUD() {
+    const s = stats();
+    $("hudLv").textContent = s.level;
+    $("hudBar").style.width = (100 * s.into / s.need).toFixed(1) + "%";
+    $("hudXp").textContent = `${s.into} / ${s.need} XP`;
+    $("hudDay").textContent = `${s.today}/${s.goal}`;
+    $("hudRing").style.strokeDashoffset = (56.55 * (1 - Math.min(1, s.today / s.goal))).toFixed(2);
+    $("hudStreak").textContent = `🔥 ${s.streak}`;
+    $("hudStreak").classList.toggle("cold", s.streak === 0);
+    $("tabWork").innerHTML = "Work" + (s.due ? `<span class="badge">${s.due}</span>` : "");
+    if (!views.stats.hidden) renderStats(s);
+    return s;
+  }
+
+  // Rank breakdown of a note's text (reads the "Age:" line of each entry)
+  function breakdown(body) {
+    const counts = {};
+    Ranking.GROUPS.forEach(g => counts[g] = 0);
+    if (!body.trim()) return { counts, total: 0 };
+    const blocks = body.trim().split(/\n[ \t]*\n/);
+    blocks.forEach(b => {
+      const m = b.match(/^\s*Age\s*:\s*(.*)$/im);
+      counts[Ranking.classify(m ? m[1] : null).group]++;
+    });
+    return { counts, total: blocks.length };
+  }
+  function tierBar(body) {
+    const { counts, total } = breakdown(body), el = document.createElement("span");
+    el.className = "tbar";
+    if (total) Ranking.GROUPS.forEach(g => {
+      if (!counts[g]) return;
+      const s = document.createElement("span"); s.className = "t-" + g; s.style.width = (100 * counts[g] / total) + "%";
+      el.appendChild(s);
+    });
+    return el;
+  }
+  function setChip(el, group, text) { el.className = "chip t-" + group; el.textContent = text; }
+
+  function renderStats(s = stats()) {
+    if (typeof renderBackup === "function") renderBackup();
+    if (typeof renderSync === "function") renderSync();
+    $("stLevel").textContent = `Level ${s.level}`;
+    $("stBar").style.width = (100 * s.into / s.need).toFixed(1) + "%";
+    $("stXp").textContent = `${s.into} / ${s.need} XP to level ${s.level + 1}. ${s.xp} XP total, ${s.entries} entries.`;
+    $("stToday").textContent = s.today;
+    $("stTodaySub").textContent = s.today >= s.goal ? `Goal of ${s.goal} reached` : `${s.goal - s.today} to go (goal ${s.goal})`;
+    $("stStreak").textContent = s.streak;
+    $("stBest").textContent = `days. Best: ${s.best}`;
+    if (document.activeElement !== $("goalIn")) $("goalIn").value = s.goal;
+    $("stCallsToday").textContent = s.callsToday;
+    $("stWins").textContent = s.wins;
+    $("stSecToday").textContent = money(s.securedToday);
+    $("stSec").textContent = money(s.secured);
+    $("stBestDeal").textContent = s.bestDeal ? `secured total. Best deal ${money(s.bestDeal)}` : "secured total";
+    $("stWinRate").textContent = s.calls ? `successes (${Math.round(100 * s.wins / s.calls)}% of ${s.calls} calls)` : "successes";
+    const pt = $("stPoints"); pt.innerHTML = "";
+    const row = (a, b, cls) => { const x = document.createElement("span"); x.textContent = a; if (cls) x.className = cls; pt.appendChild(x); if (b !== undefined && cls !== "h") { const y = document.createElement("b"); y.textContent = b; pt.appendChild(y); } };
+    row("Adding an entry", undefined, "h");
+    row("New entry (full cards only, no duplicates)", `${XP_BASE}`);
+    row(`Combo, from the 3rd entry in a row within 3 min, each (max +${COMBO_STEP * COMBO_MAX_STEPS})`, `+${COMBO_STEP}`);
+    row("Calls", undefined, "h");
+    ["no_answer", "voicemail", "cb_voicemail", "cb_answered", "success"].forEach(o => row(OUTCOMES[o].label, `${OUTCOMES[o].pts}`));
+    row("Trash (kept, blocks re-adding)", "0");
+    row("Call back made on time", `+${CB_ONTIME_BONUS}`); row("Call back missed or late", `-${CB_LATE_PENALTY}`);
+    row("Rank value (multiplies success points only)", undefined, "h");
+    Ranking.TIER_TABLE.forEach(t => row(t.label, `x${RANK_MULT[t.id]}`));
+    row("Amount secured (multiplies success points)", undefined, "h");
+    AMOUNT_TIERS.forEach(a => row(a.label, `x${a.mult}`));
+    const all = breakdown(notes.map(n => n.body.trim()).filter(Boolean).join("\n\n"));
+    const box = $("stTiers"); box.innerHTML = "";
+    Ranking.GROUPS.forEach(g => {
+      const row = document.createElement("div"); row.className = "trow t-" + g;
+      const chip = document.createElement("span"); setChip(chip, g, Ranking.groupLabel(g));
+      const n = document.createElement("b"); n.textContent = all.counts[g];
+      const bar = document.createElement("span"); bar.className = "bar";
+      const fill = document.createElement("i"); fill.style.width = all.total ? (100 * all.counts[g] / all.total) + "%" : "0";
+      bar.appendChild(fill); row.append(chip, n, bar); box.appendChild(row);
+    });
+    const achs = $("stAchs"); achs.innerHTML = "";
+    ACHIEVEMENTS.forEach(a => {
+      const d = document.createElement("div"); d.className = "ach" + (ach[a.id] ? " on" : "");
+      const n = document.createElement("div"); n.className = "n"; n.textContent = a.n;
+      const dd = document.createElement("div"); dd.className = "d"; dd.textContent = a.d;
+      d.append(n, dd); achs.appendChild(d);
+    });
+  }
+  $("goalIn").addEventListener("change", () => {
+    const v = Math.min(999, Math.max(1, parseInt($("goalIn").value, 10) || 25));
+    store.set("goal", String(v)); $("goalIn").value = v; refreshHUD();
+  });
+
+  /* ---------- views + Android back button ---------- */
+  const views = { parser: $("viewParser"), notes: $("viewNotes"), note: $("viewNote"), work: $("viewWork"), stats: $("viewStats") };
+  let currentNote = null;
+  function show(v) {
+    for (const k in views) views[k].hidden = k !== v;
+    $("dock").hidden = v !== "parser";
+    $("tabParser").classList.toggle("on", v === "parser");
+    $("tabNotes").classList.toggle("on", v === "notes" || v === "note");
+    $("tabStats").classList.toggle("on", v === "stats");
+    $("tabWork").classList.toggle("on", v === "work");
+    if (v === "notes") renderNotes();
+    if (v === "work") renderWork();
+    if (v === "stats") renderStats();
+    window.scrollTo(0, 0);
+  }
+  $("tabParser").onclick = () => { if (!views.note.hidden) { flushNote(); history.back(); } show("parser"); };
+  $("tabStats").onclick = () => { if (!views.note.hidden) { flushNote(); history.back(); } show("stats"); };
+  $("hud").onclick = () => $("tabStats").click();
+  $("tabWork").onclick = () => { if (!views.note.hidden) { flushNote(); history.back(); } workLimit = 60; show("work"); };
+  $("tabNotes").onclick = () => { if (!views.note.hidden) history.back(); else show("notes"); };
+
+  window.addEventListener("popstate", () => {
+    if (!$("profSheet").hidden) { $("profSheet").hidden = true; return; }
+    if (!$("winSheet").hidden) { $("winSheet").hidden = true; return; }
+    if (!$("cbSheet").hidden) { $("cbSheet").hidden = true; return; }
+    if (!$("sheet").hidden) { $("sheet").hidden = true; return; }
+    if (!views.note.hidden) { flushNote(); currentNote = null; show("notes"); }
+  });
+
+  /* ---------- work page ---------- */
+  let workFilter = "tocall", workByRank = store.get("workrank") === "1", workLimit = 60;
+  const PHONE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>';
+  const TRASH_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14M10 11v6M14 11v6"/></svg>';
+  const PROFILE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="11" r="2.5"/><path d="M5.5 17c.8-1.8 2-2.6 3.5-2.6s2.7.8 3.5 2.6M15 9h3M15 13h3"/></svg>';
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
+  const fmtWhen = ts => {
+    const d = new Date(ts), days = (ts - Date.now()) / 864e5;
+    const time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    if (d.toDateString() === new Date().toDateString()) return "today " + time;
+    if (days > -6 && days < 6) return d.toLocaleDateString([], { weekday: "short" }) + " " + time;
+    return d.toLocaleDateString([], { month: "short", day: "numeric" }) + " " + time;
+  };
+  const prettyPhone = p => { const d = p.replace(/\D/g, "").slice(-10); return d.length === 10 ? `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}` : p; };
+
+  // Caller ID: when on, every call dials with *67 in front (hides your number)
+  let privOn = store.get("priv67") !== "0";
+  const usePrivate = () => privOn;
+  const callHref = digits => privOn ? "tel:*67" + digits : "tel:+1" + digits;
+  $("workPriv").onclick = () => { privOn = !privOn; store.set("priv67", privOn ? "1" : "0"); renderWork(); };
+  $("workSort").onclick = () => { workByRank = !workByRank; store.set("workrank", workByRank ? "1" : "0"); renderWork(); };
+  $("workNote").onchange = () => { workLimit = 60; renderWork(); };
+  document.querySelectorAll("#workSeg button").forEach(b => b.onclick = () => { workFilter = b.dataset.f; workLimit = 60; renderWork(); window.scrollTo(0, 0); });
+  $("workMore").onclick = () => { workLimit += 60; renderWork(); };
+
+  function renderWork() {
+    const sel = $("workNote"), keep = sel.value;
+    sel.innerHTML = "";
+    sel.appendChild(el("option", "", "All notes")).value = "";
+    sorted().forEach(n => { const o = el("option", "", n.title); o.value = n.id; sel.appendChild(o); });
+    sel.value = notes.some(n => n.id === keep) ? keep : "";
+    $("workSort").textContent = workByRank ? "Easiest rank first" : "Note order";
+    $("workPriv").textContent = "Hide my number (*67): " + (privOn ? "On" : "Off");
+    $("workPriv").classList.toggle("on", privOn); $("workPriv").setAttribute("aria-pressed", privOn);
+
+    const now = Date.now();
+    const cards = noteEntries().filter(e => !sel.value || e.noteId === sel.value)
+      .map(e => ({ e, sc: cardScore(work[e.fp]?.events || [], e.tier, now) }));
+    const counts = { tocall: 0, callback: 0, done: 0, hidden: 0 };
+    cards.forEach(c => counts[c.sc.status]++);
+    document.querySelectorAll("#workSeg button").forEach(b => {
+      b.classList.toggle("on", b.dataset.f === workFilter);
+      b.querySelector("b").textContent = counts[b.dataset.f];
+    });
+    let list = cards.filter(c => c.sc.status === workFilter);
+    if (workFilter === "callback") list.sort((a, b) => a.sc.cb - b.sc.cb);
+    else if (workFilter === "done" || workFilter === "hidden") list.sort((a, b) => b.sc.last.t - a.sc.last.t);
+    else if (workByRank) list.sort((a, b) => Ranking.classify(a.e.age).sortKey - Ranking.classify(b.e.age).sortKey || a.e.order - b.e.order);
+
+    const ul = $("workList"); ul.innerHTML = "";
+    list.slice(0, workLimit).forEach(c => ul.appendChild(workCard(c.e, c.sc, !sel.value)));
+    $("workMore").hidden = list.length <= workLimit;
+    const empty = { tocall: "Nobody left to call. Add entries from the Parser tab.", callback: "No call backs scheduled.",
+                    done: "No successful calls yet.", hidden: "Trash is empty." }[workFilter];
+    $("workEmpty").textContent = empty; $("workEmpty").hidden = list.length > 0;
+  }
+
+  function workCard(e, sc, showNote) {
+    const li = el("li", "wcard t-" + e.tier);
+    const head = el("div", "wh");
+    const nm = el("div", "wn", e.name || "No name");
+    if (showNote) { nm.appendChild(document.createElement("br")); nm.appendChild(el("span", "wnote", e.noteTitle)); }
+    const chip = el("span"); setChip(chip, e.tier, Ranking.groupShort(e.tier));
+    head.append(nm, chip); li.appendChild(head);
+
+    const digits = e.phone.replace(/\D/g, "").slice(-10);
+    if (digits.length === 10) {
+      const row = el("div", "callRow");
+      const a = el("a", "call"); a.href = callHref(digits); a.innerHTML = PHONE_ICON;
+      if (usePrivate()) a.appendChild(el("span", "priv", "*67"));
+      a.append(prettyPhone(e.phone));
+      const look = el("button", "call look"); look.type = "button";
+      look.innerHTML = PROFILE_ICON; look.append("Profile");
+      look.setAttribute("aria-label", "Open saved TruePeopleSearch profile");
+      if (!profiles[e.fp]) look.classList.add("none");
+      look.onclick = () => openProfile(e);
+      row.append(a, look); li.appendChild(row);
+    }
+    const meta = [e.address, e.county, e.age ? "Age " + e.age : ""].filter(Boolean).join(", ");
+    if (meta) li.appendChild(el("div", "wm", meta));
+
+    const st = el("div", "ws"), left = el("span");
+    if (sc.status === "callback") {
+      const due = sc.cb <= Date.now();
+      left.className = sc.overdue ? "over" : due ? "due" : "";
+      left.textContent = (sc.overdue ? `Overdue (-${CB_LATE_PENALTY}): ` : due ? "Due now: " : "Call back ") + fmtWhen(sc.cb);
+    } else if (sc.last) {
+      left.textContent = `${OUTCOMES[sc.last.o].label}${sc.last.amt ? " " + money(sc.last.amt) : ""}, ${fmtWhen(sc.last.t)}` + (sc.calls ? `. ${sc.calls} call${sc.calls === 1 ? "" : "s"}` : "");
+    } else left.textContent = "Not called yet";
+    st.append(left, el("b", "", `${sc.pts} XP`));
+    li.appendChild(st);
+
+    const acts = el("div", "wa");
+    const btn = (label, o, cls, onClick, disabled) => {
+      const b = el("button", cls || "", label); b.type = "button";
+      if (cls === "trash") b.insertAdjacentHTML("afterbegin", TRASH_ICON);
+      if (o && OUTCOMES[o].pts) b.appendChild(el("small", "", "+" + outcomePts(o, e.tier) + (o === "success" ? " × $" : "")));
+      b.disabled = !!disabled; b.onclick = onClick; acts.appendChild(b);
+    };
+    const hasEvents = !!(work[e.fp] && work[e.fp].events.length);
+    if (sc.status === "hidden") {
+      btn("Restore", null, "", () => undoOutcome(e));
+    } else if (sc.status === "done") {
+      btn("Undo success", null, "", () => undoOutcome(e));   // successes stay in Done for good, no trash
+    } else {
+      btn("No answer", "no_answer", "", () => logOutcome(e, "no_answer"));
+      btn("Straight to VM", "voicemail", "", () => logOutcome(e, "voicemail"));
+      btn("Call back", null, "", () => openCallback(e));
+      btn("Success", "success", "win", () => openSuccess(e));
+      btn("Trash", null, "trash", () => { if (confirm(`Move ${e.name || "this entry"} to the trash? They stay in your notes so they can't be added again, and you can restore them from Trash.`)) logOutcome(e, "dnc"); });
+      btn("Undo", null, "", () => undoOutcome(e), !hasEvents);
+    }
+    li.appendChild(acts);
+    return li;
+  }
+
+  function logOutcome(e, o, extra) {
+    const before = stats();
+    const w = work[e.fp] || (work[e.fp] = { events: [] });
+    const prevPts = cardScore(w.events, e.tier).pts;
+    w.events.push({ t: Date.now(), o, ...(extra || {}) }); saveWork();
+    const gained = cardScore(w.events, e.tier).pts - prevPts;
+    const after = stats();
+    const unlocked = checkAchievements(after);
+    refreshHUD(); renderWork();
+    if (o === "dnc") { toast(`${e.name || "Entry"} moved to the trash`); return; }
+    const line = gained === 0 ? `${OUTCOMES[o].label}. Logged again, no points`
+      : o === "success" && extra && extra.amt !== undefined ? `${money(extra.amt)} secured  ${Ranking.groupShort(e.tier)}`
+      : `${OUTCOMES[o].label}  ${Ranking.groupShort(e.tier)}`;
+    celebrate({ xp: gained, line }, before, after, unlocked);
+  }
+  function undoOutcome(e) {
+    const w = work[e.fp];
+    if (!w || !w.events.length) return;
+    const gone = w.events.pop();
+    if (!w.events.length) delete work[e.fp];
+    saveWork(); refreshHUD(); renderWork();
+    toast(gone.o === "dnc" ? `${e.name || "Entry"} restored from the trash` : `Undid: ${OUTCOMES[gone.o].label}`);
+  }
+
+  // Saved profile viewer
+  function openProfile(e) {
+    const saved = profiles[e.fp], body = $("profBody");
+    $("profName").textContent = e.name || "No name";
+    setChip($("profChip"), e.tier, Ranking.groupShort(e.tier));
+    body.innerHTML = "";
+    const sec = (title) => { const s = el("div", "psec"); s.appendChild(el("h3", "", title)); body.appendChild(s); return s; };
+    if (!saved) {
+      const s = sec("No saved profile");
+      s.appendChild(el("p", "fine", "This person was added before profiles were saved. Paste their TruePeopleSearch page into the Parser once and it gets saved here, even though they're already in your notes."));
+      const d = e.phone.replace(/\D/g, "").slice(-10);
+      if (d.length === 10) {
+        const b = el("button", "", "Copy number for a TPS search"); b.type = "button"; b.style.width = "100%"; b.style.marginTop = "8px";
+        b.onclick = async () => { store.set("lastclip", hashText(prettyPhone(d))); toast(await writeClip(prettyPhone(d)) ? "Number copied" : "Copy blocked"); };
+        s.appendChild(b);
+      }
+    } else {
+      const p = saved.p, mine = e.phone.replace(/\D/g, "").slice(-10);
+      const sub = [p.age ? "Age " + p.age : "", p.born ? "born " + p.born : "", p.livesIn ? "lives in " + p.livesIn : ""].filter(Boolean).join(", ");
+      if (sub) body.appendChild(el("p", "sub", sub));
+      body.appendChild(el("p", "fine", "Saved " + fmtWhen(saved.t)));
+
+      if (p.phones && p.phones.length) {
+        const s = sec("Phone numbers");
+        p.phones.forEach(ph => {
+          const it = el("div", "pitem"), row = el("div", "pphone" + (ph.inactive ? " dead" : ""));
+          const a = el("a", "", ph.number); if (!ph.inactive) a.href = callHref(ph.digits);
+          const tags = el("span");
+          if (ph.digits === mine) tags.appendChild(el("span", "ptag mine", "In your notes"));
+          if (ph.type) tags.appendChild(el("span", "ptag" + (ph.type === "Wireless" ? " good" : ""), ph.type));
+          if (ph.primary) tags.appendChild(el("span", "ptag", "Primary"));
+          if (ph.inactive) tags.appendChild(el("span", "ptag bad", "Inactive"));
+          row.append(a, tags); it.appendChild(row);
+          const info = [ph.lastReported ? "Last reported " + ph.lastReported : "", ph.carrier].filter(Boolean).join(", ");
+          if (info) it.appendChild(el("div", "s", info));
+          s.appendChild(it);
+        });
+      }
+      const addr = (s, a) => {
+        const it = el("div", "pitem");
+        it.appendChild(el("div", "", a.street)); it.appendChild(el("div", "", a.city));
+        const more = [a.county, a.dates].filter(Boolean).join(", ");
+        if (more) it.appendChild(el("div", "s", more));
+        if (a.details) it.appendChild(el("div", "s", a.details));
+        s.appendChild(it);
+      };
+      if (p.current) addr(sec("Current address"), p.current);
+      if (p.aka && p.aka.length) { const s = sec("Also seen as"); p.aka.forEach(n => s.appendChild(el("div", "pitem", n))); }
+      if (p.emails && p.emails.length) { const s = sec("Emails"); p.emails.forEach(n => s.appendChild(el("div", "pitem", n))); }
+      if (p.previous && p.previous.length) { const s = sec(`Previous addresses (${p.previous.length})`); p.previous.forEach(a => addr(s, a)); }
+      const people = (title, list) => {
+        if (!list || !list.length) return;
+        const s = sec(`${title} (${list.length})`), g = el("div", "people");
+        list.forEach(x => { const d = el("div", "", x.name); if (x.age) { d.appendChild(document.createTextNode(" ")); d.appendChild(el("span", "", "Age " + x.age)); } g.appendChild(d); });
+        s.appendChild(g);
+      };
+      people("Possible relatives", p.relatives);
+      people("Possible associates", p.associates);
+      if (p.property && p.property.length) {
+        const s = sec("Property details"), g = el("div", "kv");
+        p.property.forEach(([k, v]) => { g.appendChild(el("span", "", k)); g.appendChild(el("div", "", v)); });
+        s.appendChild(g);
+      }
+      if (p.work && p.work.length) {
+        const s = sec("Education and employment");
+        p.work.forEach(w => { const it = el("div", "pitem"), g = el("div", "kv"); w.items.forEach(([k, v]) => { g.appendChild(el("span", "", k)); g.appendChild(el("div", "", v)); }); it.appendChild(g); s.appendChild(it); });
+      }
+      if (p.bio && p.bio.length) { const s = sec("Summary"); const b = el("div", "bio"); p.bio.forEach(x => b.appendChild(el("p", "", x))); s.appendChild(b); }
+    }
+    $("profSheet").hidden = false;
+    $("profSheet").querySelector(".sheet").scrollTop = 0;
+    history.pushState({ layer: "prof" }, "");
+  }
+  const closeProf = () => { if (!$("profSheet").hidden) history.back(); };
+  $("profClose").onclick = closeProf;
+  $("profSheet").addEventListener("click", ev => { if (ev.target === $("profSheet")) closeProf(); });
+
+  // Success menu: how much was secured?
+  let winEntry = null;
+  function updateWinPreview() {
+    const amt = parseFloat(($("winAmt").value || "").replace(/[^0-9.]/g, ""));
+    if (!Number.isFinite(amt) || amt <= 0) { $("winPts").textContent = "Enter the amount secured"; $("winSave").disabled = true; return; }
+    const a = amountTier(amt), r = RANK_MULT[winEntry.tier] || 1;
+    const pts = Math.round(OUTCOMES.success.pts * a.mult * r);
+    $("winPts").textContent = `${a.label} (x${a.mult}) and ${Ranking.groupShort(winEntry.tier)} (x${r}) = +${pts} XP`;
+    $("winSave").disabled = false;
+  }
+  function openSuccess(e) {
+    winEntry = e;
+    $("winWho").textContent = [e.name, Ranking.groupShort(e.tier)].join(", ");
+    $("winAmt").value = ""; updateWinPreview();
+    $("winSheet").hidden = false;
+    history.pushState({ layer: "win" }, "");
+    setTimeout(() => $("winAmt").focus(), 50);
+  }
+  $("winAmt").addEventListener("input", updateWinPreview);
+  $("winAmt").addEventListener("keydown", ev => { if (ev.key === "Enter" && !$("winSave").disabled) $("winSave").click(); });
+  const closeWin = () => { if (!$("winSheet").hidden) history.back(); };
+  $("winCancel").onclick = closeWin;
+  $("winSheet").addEventListener("click", ev => { if (ev.target === $("winSheet")) closeWin(); });
+  $("winSave").onclick = () => {
+    const amt = Math.round(parseFloat(($("winAmt").value || "").replace(/[^0-9.]/g, "")) * 100) / 100;
+    if (!Number.isFinite(amt) || amt <= 0) return;
+    const e = winEntry; closeWin();
+    logOutcome(e, "success", { amt });
+  };
+
+  // Call back menu
+  let cbEntry = null, cbKind = "cb_voicemail";
+  const toLocalInput = d => { const p = n => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
+  function setCbKind(k) { cbKind = k; document.querySelectorAll("#cbKind button").forEach(b => b.classList.toggle("on", b.dataset.k === k)); }
+  function openCallback(e) {
+    cbEntry = e;
+    $("cbWho").textContent = [e.name || "No name", Ranking.groupShort(e.tier)].join(", ");
+    $("cbPtsVm").textContent = "+" + outcomePts("cb_voicemail", e.tier);
+    $("cbPtsAns").textContent = "+" + outcomePts("cb_answered", e.tier);
+    $("cbRule").textContent = `Call back on time (30 min early to 2 hours late) for +${CB_ONTIME_BONUS}. Missing it costs ${CB_LATE_PENALTY}.`;
+    setCbKind("cb_voicemail");
+    const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(10, 0, 0, 0);
+    $("cbAt").value = toLocalInput(d);
+    $("cbSheet").hidden = false;
+    history.pushState({ layer: "cb" }, "");
+  }
+  document.querySelectorAll("#cbKind button").forEach(b => b.onclick = () => setCbKind(b.dataset.k));
+  document.querySelectorAll("#cbSheet .quick button").forEach(b => b.onclick = () => {
+    const d = new Date();
+    if (b.dataset.q === "1h") { d.setHours(d.getHours() + 1); d.setSeconds(0, 0); }
+    if (b.dataset.q === "eve") { d.setHours(18, 0, 0, 0); if (d < new Date()) d.setDate(d.getDate() + 1); }
+    if (b.dataset.q === "tmr") { d.setDate(d.getDate() + 1); d.setHours(10, 0, 0, 0); }
+    $("cbAt").value = toLocalInput(d);
+  });
+  const closeCb = () => { if (!$("cbSheet").hidden) history.back(); };
+  $("cbCancel").onclick = closeCb;
+  $("cbSheet").addEventListener("click", ev => { if (ev.target === $("cbSheet")) closeCb(); });
+  $("cbSave").onclick = () => {
+    const at = new Date($("cbAt").value).getTime();
+    if (!Number.isFinite(at)) { toast("Pick a call back time"); return; }
+    const e = cbEntry; closeCb();
+    logOutcome(e, cbKind, { cb: at });
+  };
+
+  /* ---------- notes list + single note ---------- */
+  function renderNotes() {
+    const list = $("noteList"); list.innerHTML = "";
+    sorted().forEach(n => list.appendChild(noteButton(n, () => openNote(n))));
+    $("notesEmpty").hidden = notes.length > 0;
+  }
+  function openNote(n) {
+    currentNote = n;
+    $("noteTitle").value = n.title; $("noteBody").value = n.body; updateMeta();
+    history.pushState({ layer: "note" }, "");
+    show("note");
+  }
+  function updateMeta() {
+    const c = entryCount(currentNote.body);
+    $("noteMeta").textContent = `${c} ${c === 1 ? "entry" : "entries"}. Saves automatically.`;
+    const { counts } = breakdown(currentNote.body), box = $("noteTiers");
+    box.innerHTML = "";
+    Ranking.GROUPS.forEach(g => { if (counts[g]) { const ch = document.createElement("span"); setChip(ch, g, `${Ranking.groupShort(g)} ${counts[g]}`); box.appendChild(ch); } });
+  }
+  $("newNoteBtn").onclick = () => { openNote(createNote("Note " + (notes.length + 1))); $("noteTitle").select(); };
+  $("noteBack").onclick = () => history.back();
+
+  // Jump buttons: bottom puts the cursor at the very end, ready to edit; top goes back to the start
+  const jumpBtns = [$("jumpTop"), $("jumpBottom")];
+  jumpBtns.forEach(b => b.addEventListener("mousedown", e => e.preventDefault())); // keep keyboard open
+  $("jumpBottom").onclick = () => {
+    const ta = $("noteBody"), end = ta.value.length;
+    ta.focus({ preventScroll: true });
+    ta.setSelectionRange(end, end);
+    ta.scrollTop = ta.scrollHeight;
+    ta.scrollIntoView({ block: "end" });
+  };
+  $("jumpTop").onclick = () => {
+    const ta = $("noteBody");
+    if (document.activeElement === ta) ta.setSelectionRange(0, 0);
+    ta.scrollTop = 0;
+    window.scrollTo(0, 0);
+  };
+  let editTimer;
+  function flushNote() {
+    clearTimeout(editTimer);
+    if (currentNote && currentNote.body !== $("noteBody").value) {
+      currentNote.body = $("noteBody").value; currentNote.updated = Date.now(); saveNotes(); refreshHUD();
+    }
+  }
+  $("noteBody").addEventListener("input", () => {
+    clearTimeout(editTimer);
+    editTimer = setTimeout(() => { currentNote.body = $("noteBody").value; currentNote.updated = Date.now(); saveNotes(); updateMeta(); refreshHUD(); }, 300);
+  });
+  $("noteTitle").addEventListener("input", () => {
+    currentNote.title = $("noteTitle").value.trim() || "Untitled"; currentNote.updated = Date.now(); saveNotes();
+  });
+  $("noteCopy").onclick = async () => toast(await writeClip($("noteBody").value) ? "Note copied" : "Copy blocked");
+  $("noteShare").onclick = async () => {
+    const text = $("noteBody").value;
+    if (navigator.share) { try { await navigator.share({ title: currentNote.title, text }); } catch {} }
+    else toast(await writeClip(text) ? "Sharing isn't available here, so the note was copied" : "Copy blocked");
+  };
+  $("noteDelete").onclick = () => {
+    if (!confirm(`Delete "${currentNote.title}"? This can't be undone.`)) return;
+    notes = notes.filter(n => n !== currentNote); saveNotes(); refreshHUD(); history.back();
+  };
+
+  /* ---------- parser ---------- */
+  const raw = $("raw"), copyAll = $("copyAll"), alts = $("alts");
+  const F = { name: $("f-name"), age: $("f-age"), phone: $("f-phone"), address: $("f-address"), county: $("f-county") };
+  const LABEL = { name: "Name", age: "Age", phone: "Phone #", address: "Address", county: "County" };
+  const COPY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';
+  const CHECK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>';
+  document.querySelectorAll(".field button").forEach(b => b.innerHTML = COPY_ICON);
+
+  const optFL = $("optFirstLast"), optPretty = $("optPretty"), optAuto = $("optAutoClear");
+  optFL.checked = store.get("fl") === "1";
+  optPretty.checked = store.get("pretty") === "1";
+  optAuto.checked = store.get("autoclear") === "1";
+
+  let last = null, phoneIdx = 0;
+  function render() {
+    const r = last;
+    if (!r) { Object.values(F).forEach(i => i.value = ""); alts.innerHTML = ""; markMissing(); return; }
+    F.name.value = optFL.checked ? Parser.firstLast(r.name) : r.name;
+    F.age.value = r.age;
+    const p = r.phones[phoneIdx];
+    F.phone.value = p ? Parser.fmtPhone(p.digits, optPretty.checked ? "pretty" : "digits") : "";
+    F.address.value = r.address;
+    F.county.value = r.county;
+    alts.innerHTML = "";
+    if (r.phones.length > 1) r.phones.forEach((ph, i) => {
+      const b = document.createElement("button"); b.type = "button";
+      b.className = i === phoneIdx ? "on" : "";
+      b.textContent = Parser.fmtPhone(ph.digits, "pretty") + (ph.type ? " (" + ph.type + ")" : "");
+      b.setAttribute("aria-pressed", i === phoneIdx);
+      b.onclick = () => { phoneIdx = i; render(); };
+      alts.appendChild(b);
+    });
+    markMissing();
+  }
+  function markMissing() {
+    let any = false;
+    for (const k in F) {
+      const has = F[k].value.trim() !== "";
+      F[k].closest(".field").classList.toggle("missing", !has && raw.value.trim() !== "");
+      any = any || has;
+    }
+    copyAll.disabled = !any;
+    $("hint").hidden = raw.value.trim() !== "";
+    $("tierRow").hidden = !any;
+    if (any) {
+      const g = Ranking.classify(F.age.value).group, p = preview(fieldValues());
+      setChip($("tierChip"), g, Ranking.groupLabel(g));
+      let why = p.why;
+      if (p.block && /^Duplicate/.test(p.why) && saveProfile(fingerprint(fieldValues()), raw.value)) why += ". Profile info saved";
+      $("xpPreview").textContent = p.xp ? `+${p.xp} XP` : why;
+      $("xpPreview").classList.toggle("zero", !p.xp && !p.block);
+      $("xpPreview").classList.toggle("block", !!p.block);
+    }
+  }
+  function run() { phoneIdx = 0; last = raw.value.trim() ? Parser.parse(raw.value) : null; render(); }
+
+  let timer;
+  raw.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(run, 120); });
+  Object.values(F).forEach(i => i.addEventListener("input", markMissing));
+  optFL.onchange = () => { store.set("fl", optFL.checked ? "1" : "0"); render(); };
+  optPretty.onchange = () => { store.set("pretty", optPretty.checked ? "1" : "0"); render(); };
+  optAuto.onchange = () => store.set("autoclear", optAuto.checked ? "1" : "0");
+  $("clearBtn").onclick = () => { raw.value = ""; run(); raw.focus(); };
+  $("pasteBtn").onclick = async () => {
+    try {
+      const t = await navigator.clipboard.readText();
+      if (t) { importText(t); return; }
+    } catch {}
+    raw.focus(); toast("Long-press the box to paste");
+  };
+  const fieldValues = () => ({ name: F.name.value, age: F.age.value, phone: F.phone.value, address: F.address.value, county: F.county.value });
+  const resultText = () => Object.keys(F).map(k => `${LABEL[k]}: ${F[k].value.trim() || "N/A"}`).join("\n");
+
+  document.querySelectorAll(".field button").forEach(b => {
+    b.onclick = async () => {
+      const v = b.parentElement.querySelector("input").value.trim();
+      if (!v || !(await writeClip(v))) return;
+      b.innerHTML = CHECK_ICON; b.classList.add("done");
+      setTimeout(() => { b.innerHTML = COPY_ICON; b.classList.remove("done"); }, 1200);
+    };
+  });
+
+  /* ---------- copy-to-note menu ---------- */
+  function openSheet() {
+    $("sheetPreview").textContent = resultText();
+    const g = Ranking.classify(F.age.value).group, p = preview(fieldValues());
+    setChip($("sheetChip"), g, Ranking.groupLabel(g));
+    $("sheetGain").textContent = p.block ? p.why + ". Can't be added" : p.xp ? `+${p.xp} XP${comboShown(p.combo) >= 2 ? `, combo x${comboShown(p.combo)}` : ""}` : p.why;
+    $("sheetGain").classList.toggle("zero", !p.xp && !p.block);
+    $("sheetGain").classList.toggle("block", !!p.block);
+    const list = $("sheetList"); list.innerHTML = "";
+    sorted().forEach(n => list.appendChild(noteButton(n, () => addTo(n))));
+    $("sheetNew").value = "";
+    list.querySelectorAll("button").forEach(b => b.disabled = !!p.block);
+    $("sheetCreate").disabled = !!p.block; $("sheetNew").disabled = !!p.block;
+    $("sheet").hidden = false;
+    history.pushState({ layer: "sheet" }, "");
+  }
+  function closeSheet() { if (!$("sheet").hidden) history.back(); }
+  function addTo(n) {
+    const text = resultText();
+    const chk = preview(fieldValues());
+    if (chk.block) { toast(chk.why + ". Not added."); closeSheet(); return; }
+    const fv = fieldValues(), rawText = raw.value;
+    const ev = award(fv, () => appendToNote(n, text));
+    saveProfile(fingerprint(fv), rawText);
+    closeSheet();
+    toast(ev.xp ? `Added to ${n.title}` : `Added to ${n.title}. ${ev.why}, no XP`);
+    if (optAuto.checked) { raw.value = ""; run(); } else markMissing();   // refresh the XP preview
+  }
+  copyAll.onclick = openSheet;
+  $("sheetCreate").onclick = () => {
+    const name = $("sheetNew").value.trim();
+    if (!name) { $("sheetNew").focus(); return; }
+    addTo(createNote(name));
+  };
+  $("sheetNew").addEventListener("keydown", e => { if (e.key === "Enter") $("sheetCreate").click(); });
+  $("sheetClip").onclick = async () => { const ok = await writeClip(resultText()); closeSheet(); toast(ok ? "Copied to clipboard" : "Copy blocked"); };
+  $("sheetCancel").onclick = closeSheet;
+  $("sheet").addEventListener("click", e => { if (e.target === $("sheet")) closeSheet(); });
+
+  /* ---------- backup + restore ---------- */
+  const BK_SKIP = new Set(["lastclip", "bk-nag", "sync-auth", "sync-meta", "sync-dirty", "sync-prof", "sync-last"]);
+  const daysAgo = t => Math.floor((Date.now() - t) / 864e5);
+  function allData() {
+    const data = {};
+    try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (!BK_SKIP.has(k) && k !== "bk-last") data[k] = localStorage.getItem(k); } } catch {}
+    return data;
+  }
+  function renderBackup() {
+    const last = parseInt(store.get("bk-last") || "0", 10);
+    $("bkLast").textContent = last ? `Last backup: ${fmtWhen(last)}${daysAgo(last) >= 1 ? ` (${daysAgo(last)} day${daysAgo(last) === 1 ? "" : "s"} ago)` : ""}` : "No backup yet.";
+    $("bkLast").style.color = !last || daysAgo(last) >= 3 ? "var(--danger)" : "";
+  }
+  async function backupNow() {
+    const now = new Date(), p = n => String(n).padStart(2, "0");
+    const name = `tps-notes-backup-${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}-${p(now.getHours())}${p(now.getMinutes())}.json`;
+    const json = JSON.stringify({ app: "TPS Notes", version: 1, created: now.toISOString(), data: allData() });
+    const file = new File([json], name, { type: "application/json" });
+    let done = false;
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: "TPS Notes backup" }); done = true; }
+      catch (err) { if (err && err.name === "AbortError") return; }
+    }
+    if (!done) {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(file); a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    }
+    store.set("bk-last", String(Date.now()));
+    renderBackup();
+    toast(done ? "Backup shared" : "Backup saved to Downloads");
+  }
+  $("bkSave").onclick = backupNow;
+  $("bkLoad").onclick = () => { $("bkFile").value = ""; $("bkFile").click(); };
+  $("bkFile").onchange = async () => {
+    const f = $("bkFile").files[0];
+    if (!f) return;
+    let parsed;
+    try { parsed = JSON.parse(await f.text()); } catch { toast("That file isn't a TPS Notes backup"); return; }
+    if (!parsed || parsed.app !== "TPS Notes" || !parsed.data || typeof parsed.data !== "object") { toast("That file isn't a TPS Notes backup"); return; }
+    let count = 0;
+    try { count = JSON.parse(parsed.data["tps-notes-v1"] || "[]").length; } catch {}
+    const when = parsed.created ? new Date(parsed.created).toLocaleString() : "unknown date";
+    if (!confirm(`Restore backup from ${when} (${count} note${count === 1 ? "" : "s"})?\n\nThis replaces everything currently in the app on this phone.`)) return;
+    try {
+      Object.keys(allData()).forEach(k => localStorage.removeItem(k));
+      Object.entries(parsed.data).forEach(([k, v]) => { if (typeof v === "string") localStorage.setItem(k, v); });
+      localStorage.setItem("bk-last", String(Date.now()));
+    } catch { toast("Restore failed: phone storage is full"); return; }
+    toast("Backup restored");
+    setTimeout(() => location.reload(), 600);
+  };
+
+  // Ask Chrome not to clear this app's storage on its own (granted automatically for installed apps)
+  async function protectStorage() {
+    let ok = false;
+    try { if (navigator.storage && navigator.storage.persist) ok = (await navigator.storage.persisted()) || (await navigator.storage.persist()); } catch {}
+    $("bkPersist").textContent = ok ? "Protected from automatic cleanup by Chrome." : "Not protected from automatic cleanup here. Install the app from your GitHub link for protection, and keep backing up.";
+  }
+
+  // Gentle reminder: once a day, if there's data and no backup in 3+ days
+  function backupReminder() {
+    const last = parseInt(store.get("bk-last") || "0", 10);
+    if (!notes.length || (last && daysAgo(last) < 3)) return;
+    const shown = store.get("bk-nag");
+    if (shown === dayKey(Date.now())) return;
+    store.set("bk-nag", dayKey(Date.now()));
+    setTimeout(() => toast(last ? `No backup in ${daysAgo(last)} days. Back up in Stats.` : "You haven't backed up yet. Tap Stats, then Back up now."), 1500);
+  }
+
+  /* ---------- cloud sync (Supabase) ---------- */
+  // Each saved item (notes, call history, XP, settings...) is one row; saved profiles are one row per person.
+  // Newest change wins. Works offline and catches up when the phone is back online.
+  const SYNC_SKIP = /^(lastclip|bk-|sync-)/;
+  const syncable = k => !!k && !SYNC_SKIP.test(k);
+  const jget = (k, d) => { try { return JSON.parse(localStorage.getItem(k) || "") ?? d; } catch { return d; } };
+  const jset = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+  let syncCfg = jget("sync-cfg", null), syncAuth = jget("sync-auth", null);
+  let syncMeta = jget("sync-meta", {}), syncDirty = new Set(jget("sync-dirty", [])), syncProf = jget("sync-prof", {});
+  let syncTimer = null, syncBusy = false, syncState = "";
+
+  onStoreSet = k => {
+    if (!syncable(k)) return;
+    syncMeta[k] = Date.now(); syncDirty.add(k);
+    jset("sync-meta", syncMeta); jset("sync-dirty", [...syncDirty]);
+    if (syncAuth) { clearTimeout(syncTimer); syncTimer = setTimeout(() => syncNow(), 3000); }
+  };
+
+  const api = (path, opts = {}) => fetch(syncCfg.url.replace(/\/+$/, "") + path, {
+    ...opts, headers: { apikey: syncCfg.key, "Content-Type": "application/json", ...(opts.headers || {}) }
+  });
+  async function authCall(path, body) {
+    const r = await api(path, { method: "POST", body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error_description || j.msg || j.message || ("Error " + r.status));
+    return j;
+  }
+  function keepSession(j) {
+    syncAuth = { access: j.access_token, refresh: j.refresh_token, exp: Date.now() + (j.expires_in || 3600) * 1000, id: j.user.id, email: j.user.email };
+    jset("sync-auth", syncAuth);
+  }
+  async function token() {
+    if (syncAuth.exp - Date.now() > 60e3) return syncAuth.access;
+    keepSession(await authCall("/auth/v1/token?grant_type=refresh_token", { refresh_token: syncAuth.refresh }));
+    return syncAuth.access;
+  }
+  const authed = async (path, opts = {}) => api(path, { ...opts, headers: { Authorization: "Bearer " + (await token()), ...(opts.headers || {}) } });
+
+  function setSyncState(s) { syncState = s; renderSync(); }
+
+  async function syncNow(firstTime) {
+    if (!syncAuth || !syncCfg || syncBusy) return;
+    if (!navigator.onLine) { setSyncState("Offline. Changes will sync when you're back online."); return; }
+    syncBusy = true; setSyncState("Syncing...");
+    try {
+      const r = await authed("/rest/v1/tps_kv?select=key,value,updated_at");
+      if (!r.ok) throw new Error(r.status === 404 ? "Table tps_kv not found. Run the setup SQL." : "Server error " + r.status);
+      const rows = await r.json();
+      const remote = new Map(rows.map(x => [x.key, x]));
+
+      // First sign-in on a phone that already has notes, while the cloud also has notes: ask which one wins
+      if (firstTime && notes.length && remote.has("tps-notes-v1")) {
+        const useCloud = confirm("Your account already has saved data in the cloud.\n\nOK = use the cloud data (replaces what's on this phone)\nCancel = upload this phone's data (replaces the cloud)");
+        const all = Object.keys(allData()).filter(syncable);
+        if (useCloud) { syncDirty.clear(); all.forEach(k => syncMeta[k] = 0); syncProf = {}; }
+        else { const now = Date.now(); all.forEach(k => { syncMeta[k] = now; syncDirty.add(k); }); syncProf = {}; }
+      }
+
+      let pulled = false;
+      // --- pull newer cloud data ---
+      let profs = null;
+      for (const row of rows) {
+        if (row.key.startsWith("prof:")) {
+          const fp = row.key.slice(5);
+          profs = profs || jget(PROF_KEY, {});
+          const mine = profs[fp];
+          if (!mine || row.updated_at > mine.t) {
+            try { profs[fp] = JSON.parse(row.value); syncProf[fp] = profs[fp].h; pulled = true; } catch {}
+          } else if (mine.h === JSON.parse(row.value).h) syncProf[fp] = mine.h;
+          continue;
+        }
+        if (!syncable(row.key)) continue;
+        const localT = syncMeta[row.key] || 0;
+        if (row.updated_at > localT) {
+          try { localStorage.setItem(row.key, row.value); } catch {}
+          syncMeta[row.key] = row.updated_at; syncDirty.delete(row.key); pulled = true;
+        }
+      }
+      if (profs) { try { localStorage.setItem(PROF_KEY, JSON.stringify(profs)); } catch {} }
+
+      // --- push local changes ---
+      const up = [];
+      const localKeys = Object.keys(allData()).filter(syncable);
+      for (const k of localKeys) {
+        if (k === PROF_KEY) continue;
+        if (syncDirty.has(k) || !remote.has(k)) {
+          const v = localStorage.getItem(k);
+          if (v !== null) up.push({ user_id: syncAuth.id, key: k, value: v, updated_at: syncMeta[k] || Date.now() });
+        }
+      }
+      const curProfs = jget(PROF_KEY, {});
+      for (const [fp, pr] of Object.entries(curProfs)) {
+        if (syncProf[fp] !== pr.h) up.push({ user_id: syncAuth.id, key: "prof:" + fp, value: JSON.stringify(pr), updated_at: pr.t || Date.now() });
+      }
+      for (let i = 0; i < up.length; i += 50) {            // send in batches to keep each request small
+        const batch = up.slice(i, i + 50);
+        const w = await authed("/rest/v1/tps_kv", { method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify(batch) });
+        if (!w.ok) throw new Error("Upload failed (" + w.status + ")");
+        batch.forEach(x => { if (x.key.startsWith("prof:")) syncProf[x.key.slice(5)] = curProfs[x.key.slice(5)].h; else { syncMeta[x.key] = x.updated_at; syncDirty.delete(x.key); } });
+      }
+      syncDirty.delete(PROF_KEY);                          // profiles were sent person by person above
+      jset("sync-meta", syncMeta); jset("sync-dirty", [...syncDirty]); jset("sync-prof", syncProf);
+      localStorage.setItem("sync-last", String(Date.now()));
+      syncBusy = false;
+      setSyncState("");
+      if (pulled) { toast("Synced from the cloud"); setTimeout(() => location.reload(), 700); }
+    } catch (err) {
+      syncBusy = false;
+      setSyncState(/Failed to fetch|NetworkError|Load failed/i.test(err.message) ? "Can't reach the cloud right now. Will retry." : "Sync problem: " + err.message);
+    }
+  }
+
+  function renderSync() {
+    $("syncSetup").hidden = !!syncCfg;
+    $("syncLogin").hidden = !syncCfg || !!syncAuth;
+    $("syncOn").hidden = !syncAuth;
+    if (syncAuth) {
+      $("syncWho").textContent = "Signed in as " + syncAuth.email;
+      const last = parseInt(localStorage.getItem("sync-last") || "0", 10);
+      $("syncStatus").textContent = syncState || (syncDirty.size ? `${syncDirty.size} change${syncDirty.size === 1 ? "" : "s"} waiting to sync` : last ? "All synced. Last sync " + fmtWhen(last) : "Not synced yet");
+      $("syncStatus").style.color = /problem|reach|Offline/.test(syncState) ? "var(--danger)" : "";
+    }
+  }
+  $("syncCfgSave").onclick = () => {
+    const url = $("syncUrl").value.trim(), key = $("syncKey").value.trim();
+    if (!/^https:\/\/.+/.test(url) || key.length < 20) { toast("Paste the Project URL and anon key from Supabase"); return; }
+    syncCfg = { url, key }; jset("sync-cfg", syncCfg); renderSync();
+  };
+  $("syncCfgEdit").onclick = () => { $("syncUrl").value = syncCfg.url; $("syncKey").value = syncCfg.key; syncCfg = null; localStorage.removeItem("sync-cfg"); renderSync(); };
+  async function doAuth(signup) {
+    const email = $("syncEmail").value.trim(), password = $("syncPass").value;
+    if (!email || password.length < 6) { toast("Enter your email and a password (6+ characters)"); return; }
+    try {
+      const j = signup ? await authCall("/auth/v1/signup", { email, password }) : await authCall("/auth/v1/token?grant_type=password", { email, password });
+      if (!j.access_token) { toast("Account created. Check your email to confirm it, then sign in."); return; }
+      keepSession(j); $("syncPass").value = "";
+      toast("Signed in"); renderSync(); syncNow(true);
+    } catch (err) { toast(err.message.length < 90 ? err.message : "Sign in failed"); }
+  }
+  $("syncSignIn").onclick = () => doAuth(false);
+  $("syncSignUp").onclick = () => doAuth(true);
+  $("syncNowBtn").onclick = () => syncNow();
+  $("syncOut").onclick = () => {
+    if (!confirm("Sign out of cloud sync? Your data stays on this phone and in the cloud.")) return;
+    syncAuth = null; localStorage.removeItem("sync-auth"); renderSync();
+  };
+  window.addEventListener("online", () => syncNow());
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") syncNow(); });
+
+  /* ---------- game init ---------- */
+  protectStorage(); renderBackup(); renderSync(); syncNow();
+  if (!syncAuth) backupReminder();      // cloud sync makes manual backups optional
+  if (!Ranking.selfTest().ok) console.warn("Ranking self-test failed", Ranking.selfTest());
+  refreshHUD();
+
+  /* ---------- offline ---------- */
+  const net = $("net");
+  if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+    navigator.serviceWorker.register("sw.js").then(() => navigator.serviceWorker.ready)
+      .then(() => { net.textContent = "Ready offline"; net.classList.add("ready"); }).catch(() => {});
+  } else if (location.protocol === "file:") { net.textContent = "Offline file"; net.classList.add("ready"); }
+
+  /* ---------- importing text (Paste button, auto-paste, share) ---------- */
+  const optClip = $("optAutoPaste");
+  optClip.checked = store.get("autopaste") !== "0";
+  optClip.onchange = () => { store.set("autopaste", optClip.checked ? "1" : "0"); if (optClip.checked) checkClipboard(); };
+  const hash = s => { let h = 5381; for (let i = 0; i < s.length; i++) h = (h * 33 ^ s.charCodeAt(i)) >>> 0; return h.toString(36) + s.length; };
+  const looksLikeProfile = r => !!(r.name || r.age) && !!(r.phones.length || r.address);
+  function importText(t) {
+    store.set("lastclip", hash(t.trim()));
+    if (!views.note.hidden) history.back();
+    if (!$("sheet").hidden) closeSheet();
+    raw.value = t; run(); show("parser");
+    if (!copyAll.disabled) setTimeout(openSheet, 60); else toast("Couldn't find any fields in that text");
+  }
+  let checking = false;
+  async function checkClipboard() {
+    if (!optClip.checked || checking || document.visibilityState !== "visible") return;
+    if (!navigator.clipboard || !navigator.clipboard.readText) return;
+    if (!$("sheet").hidden || !views.note.hidden) return;   // don't interrupt the menu or note editing
+    checking = true;
+    try {
+      const t = ((await navigator.clipboard.readText()) || "").trim();
+      if (!t || hash(t) === store.get("lastclip")) return;  // already imported this exact text
+      if (!looksLikeProfile(Parser.parse(t))) return;       // ignore clipboard text that isn't a profile
+      importText(t);
+    } catch { /* permission not granted yet: the Paste button still works and grants it */ }
+    finally { checking = false; }
+  }
+
+  /* ---------- text shared from another app (Chrome: select text > Share > TPS Notes) ---------- */
+  const q = new URLSearchParams(location.search);
+  const shared = [q.get("title"), q.get("text")].filter(Boolean).join("\n").trim();
+  if (q.has("text") || q.has("title")) history.replaceState(null, "", location.pathname);
+  if (shared) {
+    raw.value = shared;
+    run();
+    show("parser");
+    if (!copyAll.disabled) openSheet(); else toast("Couldn't find any fields in the shared text");
+  } else run();
+
+  /* ---------- auto-paste: read the clipboard whenever the app comes to the front ---------- */
+  if (!shared) checkClipboard();
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checkClipboard(); });
+  window.addEventListener("focus", () => checkClipboard());
+})();
+</script>
+</body>
+</html>

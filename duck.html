@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1220">
+<title>Duck View</title>
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mapbox-gl@3.7.0/dist/mapbox-gl.css">
+<script src="https://cdn.jsdelivr.net/npm/mapbox-gl@3.7.0/dist/mapbox-gl.js"></script>
+<style>
+  :root {
+    --bg: #0b1220; --glass: rgba(16, 23, 36, .82); --line: rgba(147, 161, 184, .28);
+    --text: #e6ebf2; --muted: #93a1b8; --amber: #f0b429; --ok: #6fcf97; --danger: #ff8a80;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); overflow: hidden;
+    font-family: system-ui, "SamsungOne", Roboto, "Segoe UI", sans-serif; -webkit-tap-highlight-color: transparent; }
+  #map { position: fixed; inset: 0; }
+  .mapboxgl-ctrl-bottom-left, .mapboxgl-ctrl-bottom-right { bottom: calc(76px + env(safe-area-inset-bottom)); }   /* keep the map credits visible above the bar */
+
+  .glass { background: var(--glass); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--line); border-radius: 14px; }
+  #hud { position: fixed; top: calc(10px + env(safe-area-inset-top)); left: 10px; right: 10px; padding: 10px 12px; z-index: 5; }
+  #hud .row1 { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  #hud h1 { margin: 0; font-size: 1.05rem; letter-spacing: .02em; }
+  #hud h1 span { color: var(--amber); }
+  #hud a { color: var(--muted); text-decoration: none; font-size: .85rem; font-weight: 600; padding: 6px 2px; }
+  .count { display: flex; align-items: baseline; gap: 6px; margin-top: 6px; }
+  .count b { font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+  .count span { color: var(--muted); font-size: .85rem; }
+  .tiers { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .tchip { font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 12px; border: 1.5px solid var(--tc); color: var(--tc); }
+  #progress { font-size: .78rem; color: var(--amber); margin-top: 6px; }
+
+  #bar { position: fixed; left: 10px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 5;
+    display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: 8px; padding: 8px; }
+  button { font: inherit; font-weight: 700; min-height: 48px; border-radius: 10px; border: 1px solid var(--line);
+    background: rgba(255,255,255,.06); color: var(--text); cursor: pointer; }
+  button:active { transform: scale(.98); }
+  button.primary { background: var(--amber); color: #231a00; border-color: var(--amber); }
+  button.on { background: var(--ok); color: #03170b; border-color: var(--ok); }
+
+  #sheet { position: fixed; left: 10px; right: 10px; bottom: calc(86px + env(safe-area-inset-bottom)); z-index: 6; padding: 14px; }
+  #sheet .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  #sheet h2 { margin: 0; font-size: 1.15rem; }
+  #sheet .sub { color: var(--muted); font-size: .88rem; margin-top: 4px; }
+  #sheet .status { margin-top: 8px; font-weight: 700; font-size: .9rem; }
+  #sheet .approx { color: var(--amber); font-size: .78rem; margin-top: 6px; }
+  #sheet .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+
+  /* floating profile cards */
+  .pcard { --s: 1; pointer-events: auto; cursor: pointer; }
+  .pcard .in { transform: scale(var(--s)); transform-origin: 50% 100%; transition: transform .2s; }
+  .pcard .box { width: 210px; padding: 9px 12px 9px 18px; position: relative; border-radius: 12px;
+    background: rgba(14,20,32,.92); border: 2px solid var(--tc); box-shadow: 0 6px 18px rgba(0,0,0,.45); }
+  .pcard .box::before { content: ""; position: absolute; left: 7px; top: 10px; bottom: 10px; width: 4px; border-radius: 2px; background: var(--tc); }
+  .pcard .box::after { content: ""; position: absolute; left: 50%; bottom: -9px; width: 14px; height: 14px; background: rgb(14,20,32);
+    border-right: 2px solid var(--tc); border-bottom: 2px solid var(--tc); transform: translateX(-50%) rotate(45deg); }
+  .pcard .n { font-weight: 800; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #e6ebf2; }
+  .pcard .r { font-weight: 800; font-size: 11.5px; letter-spacing: .04em; color: var(--tc); margin-top: 2px; }
+  .pcard .s { font-size: 12px; font-weight: 600; color: #93a1b8; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pcard .s i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--sc); margin-right: 6px; }
+  .pcard .gap { height: 16px; }
+  .pcard.sel .box { box-shadow: 0 0 0 3px rgba(240,180,41,.6), 0 6px 18px rgba(0,0,0,.45); }
+  .cards-off .pcard { display: none; }
+
+  #setup, #fatal { position: fixed; inset: 0; z-index: 20; overflow-y: auto; background: var(--bg); padding: calc(20px + env(safe-area-inset-top)) 18px 30px; }
+  #setup .wrap, #fatal .wrap { max-width: 520px; margin: 0 auto; }
+  #setup h1 { margin: 0 0 6px; } #setup h1 span { color: var(--amber); }
+  #setup p, #setup li { color: var(--muted); line-height: 1.5; font-size: .92rem; }
+  #setup ol { padding-left: 20px; }
+  #setup b { color: var(--text); }
+  #setup input { width: 100%; min-height: 50px; padding: 0 12px; margin: 8px 0 12px; border-radius: 10px; border: 1.5px solid var(--line);
+    background: #121822; color: var(--text); font: inherit; }
+  #setup input:focus { outline: none; border-color: var(--amber); }
+
+  #toast { position: fixed; left: 50%; top: calc(14px + env(safe-area-inset-top)); transform: translateX(-50%); z-index: 30;
+    background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 22px; font-weight: 700; font-size: .9rem; max-width: 90vw; text-align: center; }
+
+  /* the ducks */
+  #flock { position: fixed; inset: 0; pointer-events: none; z-index: 4; overflow: hidden; }
+  .duck { position: absolute; width: 34px; height: 16px; color: rgba(255,255,255,.85); filter: drop-shadow(0 2px 3px rgba(0,0,0,.5)); }
+  .duck path { animation: flap .5s ease-in-out infinite alternate; transform-origin: 50% 50%; }
+  @keyframes flap { from { transform: scaleY(1); } to { transform: scaleY(.45); } }
+  .flying { animation: cross var(--dur, 14s) linear forwards; }
+  @keyframes cross { from { transform: translate(-60px, 0); } to { transform: translate(calc(100vw + 120px), var(--drift, -40px)); } }
+  @media (prefers-reduced-motion: reduce) { .duck path, .flying { animation: none; } #flock { display: none; } }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="flock" aria-hidden="true"></div>
+
+<div id="hud" class="glass">
+  <div class="row1"><h1><span>Duck</span> View</h1><a href="index.html">Back to TPS Notes</a></div>
+  <div class="count"><b id="cnt">0</b><span id="cntLbl">houses in your territory</span></div>
+  <div class="tiers" id="tiers"></div>
+  <div id="progress" hidden></div>
+</div>
+
+<div id="bar" class="glass">
+  <button id="btnHome" type="button">Overview</button>
+  <button id="btnDuck" type="button" class="primary">Duck mode</button>
+  <button id="btnNext" type="button">Next house</button>
+</div>
+
+<div id="sheet" class="glass" hidden>
+  <div class="top"><div><h2 id="sName"></h2><div class="sub" id="sSub"></div></div><span class="tchip" id="sChip"></span></div>
+  <div class="sub" id="sAddr"></div>
+  <div class="status" id="sStatus"></div>
+  <div class="approx" id="sApprox" hidden>Location is approximate (street or ZIP level).</div>
+  <div class="acts"><button id="sOrbit" type="button">Circle the house</button><button id="sClose" type="button">Close</button></div>
+</div>
+
+<div id="setup" hidden><div class="wrap">
+  <h1><span>Duck</span> View setup</h1>
+  <p>Duck View uses Mapbox's satellite map. It needs your own free Mapbox token. This is a one-time setup.</p>
+  <ol>
+    <li>Go to <b>mapbox.com</b> and sign up with your new email. You can start without a card (trial limits) or add one to unlock the full free tier. There's no prepayment.</li>
+    <li>After signing in, open <b>Tokens</b> on your account page and copy your <b>Default public token</b>. It starts with <b>pk.</b></li>
+    <li>Recommended: create a new token instead, and under <b>URL restrictions</b> add your site (for example <b>https://yourname.github.io</b>) so nobody else can use it.</li>
+  </ol>
+  <label for="keyIn"><b>Paste your Mapbox token</b></label>
+  <input id="keyIn" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="pk.eyJ...">
+  <button id="keySave" type="button" class="primary" style="width:100%">Start Duck View</button>
+  <p style="margin-top:16px">The token is saved only in this app on your phone (and your private cloud sync, if it's on).</p>
+  <p><a href="index.html" style="color:var(--amber)">Back to TPS Notes</a></p>
+</div></div>
+
+<div id="fatal" hidden><div class="wrap"><h1>Duck View couldn't start</h1><p id="fatalMsg" style="color:var(--muted);line-height:1.5"></p>
+  <button id="fatalKey" type="button" style="width:100%;margin-top:10px">Change Mapbox token</button>
+  <p><a href="index.html" style="color:var(--amber)">Back to TPS Notes</a></p></div></div>
+
+<div id="toast" hidden></div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  let toastT;
+  const toast = (m, ms = 2600) => { const t = $("toast"); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, ms); };
+  const jget = (k, d) => { try { return JSON.parse(localStorage.getItem(k) || "") ?? d; } catch { return d; } };
+  // Save, and tell TPS Notes' cloud sync that this changed (so the token survives a reinstall)
+  function save(k, v) {
+    try {
+      localStorage.setItem(k, typeof v === "string" ? v : JSON.stringify(v));
+      const meta = jget("sync-meta", {}), dirty = new Set(jget("sync-dirty", []));
+      meta[k] = Date.now(); dirty.add(k);
+      localStorage.setItem("sync-meta", JSON.stringify(meta)); localStorage.setItem("sync-dirty", JSON.stringify([...dirty]));
+    } catch {}
+  }
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  /* ---------- ranks (same table as TPS Notes) ---------- */
+  const TIERS = [
+    { id: "UNDERGRAD", lo: 0, hi: 19, short: "Undergrad", color: "#b39ddb" },
+    { id: "FRESHMAN", lo: 20, hi: 26, short: "Freshman", color: "#6fcf97" },
+    { id: "SOPHOMORE", lo: 27, hi: 35, short: "Sophomore", color: "#56ccf2" },
+    { id: "JUNIOR", lo: 36, hi: 49, short: "Junior", color: "#f0b429" },
+    { id: "SENIOR", lo: 50, hi: 999, short: "Senior", color: "#ff8a80" },
+  ];
+  const UNKNOWN = { id: "AGE_UNKNOWN", short: "Unknown", color: "#93a1b8" };
+  const tierOf = age => { const s = String(age || "").trim(), n = Number(s); if (!s || !Number.isFinite(n) || n < 0) return UNKNOWN; return TIERS.find(t => n >= t.lo && n <= t.hi) || UNKNOWN; };
+
+  /* ---------- read entries from TPS Notes ---------- */
+  function readEntries() {
+    const notes = jget("tps-notes-v1", []), work = jget("tps-work-v1", {});
+    const out = [], seen = new Set();
+    notes.forEach(n => (n.body || "").trim().split(/\n[ \t]*\n/).forEach(b => {
+      const get = k => { const m = b.match(new RegExp("^\\s*" + k + "\\s*:\\s*(.*)$", "im")); const v = m ? m[1].trim() : ""; return /^n\/?a$/i.test(v) ? "" : v; };
+      const f = { name: get("Name"), age: get("Age"), phone: get("Phone\\s*#?"), address: get("Address"), county: get("County") };
+      const d = f.phone.replace(/\D/g, "");
+      const fp = d.length >= 10 ? "p:" + d.slice(-10) : f.name ? "n:" + f.name.toLowerCase() : "";
+      if (!fp || !f.address || seen.has(fp)) return;
+      seen.add(fp);
+      const ev = (work[fp] && work[fp].events) || [], last = ev[ev.length - 1];
+      let status = { text: "Not called yet", color: "#e6ebf2" };
+      if (last) {
+        if (last.o === "dnc") return;                                   // trashed: not shown on the map
+        const win = ev.find(x => x.o === "success");
+        if (win) status = { text: "Success" + (win.amt ? ", $" + Math.round(win.amt).toLocaleString() : ""), color: "#6fcf97" };
+        else if (last.o === "cb_voicemail" || last.o === "cb_answered") status = { text: "Call back scheduled", color: "#f0b429" };
+        else status = { text: `Called ${ev.length} time${ev.length === 1 ? "" : "s"}`, color: "#56ccf2" };
+      }
+      out.push({ ...f, fp, tier: tierOf(f.age), status, note: n.title });
+    }));
+    return out;
+  }
+
+  /* ---------- start ---------- */
+  // Your Mapbox public token is built in, so Duck View works with no setup (a token saved in the app takes priority)
+  const BUILT_IN_TOKEN = "pk.eyJ1Ijoic3ludGF4cHJvb2Zjb2RpbmciLCJhIjoiY213MGFrZzh4MDAwazJ4cTZxZDN2bXJqNSJ9.8TeP9HrZ4XHgrb7Jg5W_xg";
+  const wantSetup = sessionStorage.getItem("duck-setup") === "1";
+  const token = wantSetup ? null : (localStorage.getItem("duck-mapbox-token") || BUILT_IN_TOKEN);
+  if (!token) {
+    sessionStorage.removeItem("duck-setup");
+    $("setup").hidden = false;
+    $("keySave").onclick = () => {
+      const k = $("keyIn").value.trim();
+      if (!/^pk\./.test(k) || k.length < 40) { toast("Paste your public Mapbox token (it starts with pk.)"); return; }
+      save("duck-mapbox-token", k); location.reload();
+    };
+    return;
+  }
+  const fatal = msg => { $("fatalMsg").textContent = msg; $("fatal").hidden = false; };
+  $("fatalKey").onclick = () => { localStorage.removeItem("duck-mapbox-token"); sessionStorage.setItem("duck-setup", "1"); location.reload(); };
+  if (!window.mapboxgl) { fatal("The map didn't load. Duck View needs an internet connection. Check your signal and reopen it."); return; }
+  if (!navigator.onLine) { fatal("You're offline. Duck View streams the satellite map live, so it needs internet. The rest of TPS Notes still works offline."); return; }
+
+  mapboxgl.accessToken = token;
+  let map;
+  try {
+    map = new mapboxgl.Map({
+      container: "map", style: "mapbox://styles/mapbox/satellite-streets-v12", projection: "globe",
+      center: [-95, 37], zoom: 1.6, pitch: 0, bearing: 0, antialias: true, maxPitch: 80,
+    });
+  } catch (err) { fatal("This phone's browser couldn't start 3D graphics (WebGL). " + (err.message || err)); return; }
+
+  let tokenErr = false;
+  map.on("error", e => {
+    const st = e && e.error && e.error.status;
+    if ((st === 401 || st === 403) && !tokenErr) { tokenErr = true; fatal("Mapbox refused the token. Check that you pasted the public token (pk.) and that its URL restriction includes this website."); }
+  });
+
+  /* ---------- houses: pins + clusters (map layers) and floating cards (on screen) ---------- */
+  const entries = readEntries();
+  const placed = [];
+  const markers = new Map();
+  let ready = false;
+
+  function cardEl(e) {
+    const w = document.createElement("div"); w.className = "pcard";
+    w.style.setProperty("--tc", e.tier.color);
+    const inn = document.createElement("div"); inn.className = "in";
+    const box = document.createElement("div"); box.className = "box";
+    const n = document.createElement("div"); n.className = "n"; n.textContent = e.name || "No name";
+    const r = document.createElement("div"); r.className = "r"; r.textContent = e.tier.short.toUpperCase() + (e.age ? "\u2003AGE " + e.age : "");
+    const s = document.createElement("div"); s.className = "s"; s.style.setProperty("--sc", e.status.color);
+    s.appendChild(document.createElement("i")); s.append(e.status.text);
+    const gap = document.createElement("div"); gap.className = "gap";
+    box.append(n, r, s); inn.append(box, gap); w.appendChild(inn);
+    w.addEventListener("click", ev => { ev.stopPropagation(); stopDuck(); select(e); flyToHouse(e); });
+    return w;
+  }
+  const geojson = () => ({ type: "FeatureCollection", features: placed.map(e => ({ type: "Feature", geometry: { type: "Point", coordinates: [e.lng, e.lat] }, properties: { fp: e.fp, color: e.tier.color } })) });
+
+  function setupStyle() {
+    // Space, stars and atmosphere around the globe
+    map.setFog({ color: "rgb(186, 210, 235)", "high-color": "rgb(36, 92, 223)", "horizon-blend": 0.03, "space-color": "rgb(8, 12, 24)", "star-intensity": 0.6 });
+    // Real hills and valleys
+    if (!map.getSource("dem")) map.addSource("dem", { type: "raster-dem", url: "mapbox://mapbox.mapbox-terrain-dem-v1", tileSize: 512, maxzoom: 14 });
+    map.setTerrain({ source: "dem", exaggeration: 1.15 });
+    // 3D buildings
+    const firstLabel = (map.getStyle().layers.find(l => l.type === "symbol" && l.layout && l.layout["text-field"]) || {}).id;
+    try {
+      if (!map.getLayer("3d-buildings")) map.addLayer({
+        id: "3d-buildings", source: "composite", "source-layer": "building", type: "fill-extrusion", minzoom: 14.5,
+        filter: ["==", ["get", "extrude"], "true"],
+        paint: {
+          "fill-extrusion-color": "#d9dde3",
+          "fill-extrusion-height": ["interpolate", ["linear"], ["zoom"], 14.5, 0, 15.2, ["get", "height"]],
+          "fill-extrusion-base": ["get", "min_height"], "fill-extrusion-opacity": 0.72,
+        },
+      }, firstLabel);
+    } catch {}
+    // Your houses: gold count bubbles when zoomed out, rank-colored pins when close
+    if (!map.getSource("houses")) {
+      map.addSource("houses", { type: "geojson", data: geojson(), cluster: true, clusterMaxZoom: 13, clusterRadius: 45 });
+      map.addLayer({ id: "clusters", type: "circle", source: "houses", filter: ["has", "point_count"],
+        paint: { "circle-color": "#f0b429", "circle-radius": ["step", ["get", "point_count"], 18, 10, 23, 50, 29], "circle-stroke-width": 3, "circle-stroke-color": "#ffffff", "circle-emissive-strength": 1 } });
+      map.addLayer({ id: "cluster-count", type: "symbol", source: "houses", filter: ["has", "point_count"],
+        layout: { "text-field": ["get", "point_count_abbreviated"], "text-size": 15, "text-font": ["DIN Pro Bold", "Arial Unicode MS Bold"], "text-allow-overlap": true },
+        paint: { "text-color": "#231a00" } });
+      map.addLayer({ id: "pins", type: "circle", source: "houses", filter: ["!", ["has", "point_count"]],
+        paint: { "circle-color": ["get", "color"], "circle-radius": 7, "circle-stroke-width": 2.5, "circle-stroke-color": "#ffffff", "circle-pitch-alignment": "map" } });
+      map.on("click", "clusters", ev => {
+        const f = ev.features && ev.features[0]; if (!f) return;
+        map.getSource("houses").getClusterExpansionZoom(f.properties.cluster_id, (err, z) => {
+          if (!err) { stopDuck(); map.easeTo({ center: f.geometry.coordinates, zoom: z + 0.5, pitch: 50, duration: 1600 }); }
+        });
+      });
+      map.on("click", "pins", ev => { const e = placed.find(x => x.fp === ev.features[0].properties.fp); if (e) { stopDuck(); select(e); flyToHouse(e); } });
+    }
+    ready = true;
+    refreshMap();
+  }
+  map.on("style.load", setupStyle);
+
+  function refreshMap() {
+    if (!ready) return;
+    map.getSource("houses").setData(geojson());
+    placed.forEach(e => {
+      if (markers.has(e.fp)) return;
+      const m = new mapboxgl.Marker({ element: cardEl(e), anchor: "bottom", occludedOpacity: 0.35 }).setLngLat([e.lng, e.lat]).addTo(map);
+      markers.set(e.fp, m);
+    });
+    sizeCards();
+  }
+  // Cards appear once you're close enough to see houses, and grow as you fly lower
+  function sizeCards() {
+    const z = map.getZoom();
+    document.body.classList.toggle("cards-off", z < 13.2);
+    const s = Math.max(0.62, Math.min(1, 0.62 + (z - 13.2) * 0.13)).toFixed(3);
+    markers.forEach(m => m.getElement().style.setProperty("--s", s));
+  }
+  map.on("zoom", sizeCards);
+
+  /* ---------- HUD ---------- */
+  function renderHud() {
+    $("cnt").textContent = placed.length;
+    $("cntLbl").textContent = placed.length === 1 ? "house in your territory" : "houses in your territory";
+    const box = $("tiers"); box.innerHTML = "";
+    [...TIERS, UNKNOWN].forEach(t => {
+      const n = placed.filter(e => e.tier.id === t.id).length;
+      if (!n) return;
+      const c = document.createElement("span"); c.className = "tchip"; c.style.setProperty("--tc", t.color); c.textContent = `${t.short} ${n}`; box.appendChild(c);
+    });
+  }
+  renderHud();
+  if (!entries.length) toast("No entries with addresses yet. Add some in TPS Notes and come back.", 4000);
+
+  /* ---------- finding each address on the map (Mapbox geocoding, looked up fresh each visit) ---------- */
+  const GOOD = new Set(["rooftop", "parcel", "point", "interpolated"]);
+  function usePlace(e, feat) {
+    if (!feat || !feat.geometry) return false;
+    const [lng, lat] = feat.geometry.coordinates;
+    const acc = feat.properties && feat.properties.coordinates && feat.properties.coordinates.accuracy;
+    Object.assign(e, { lng, lat, approx: !GOOD.has(acc) });
+    placed.push(e); return true;
+  }
+  async function locateAll() {
+    if (!entries.length) return;
+    $("progress").hidden = false; $("progress").textContent = `Finding ${entries.length} house${entries.length === 1 ? "" : "s"}...`;
+    let missed = 0;
+    for (let i = 0; i < entries.length; i += 100) {
+      const chunk = entries.slice(i, i + 100);
+      let results = null;
+      try {
+        const r = await fetch("https://api.mapbox.com/search/geocode/v6/batch?access_token=" + encodeURIComponent(token), {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(chunk.map(e => ({ q: e.address, country: "us", limit: 1, types: ["address"] }))),
+        });
+        if (r.status === 401 || r.status === 403) { fatal("Mapbox refused the token for address lookup. Check the token and its URL restriction."); return; }
+        if (r.ok) results = (await r.json()).batch;
+      } catch {}
+      if (Array.isArray(results)) chunk.forEach((e, k) => { if (!usePlace(e, results[k] && results[k].features && results[k].features[0])) missed++; });
+      else {
+        // Batch lookup not available: look them up one by one
+        for (const e of chunk) {
+          try {
+            const r = await fetch("https://api.mapbox.com/search/geocode/v6/forward?limit=1&country=us&types=address&q=" + encodeURIComponent(e.address) + "&access_token=" + encodeURIComponent(token));
+            const j = r.ok ? await r.json() : null;
+            if (!usePlace(e, j && j.features && j.features[0])) missed++;
+          } catch { missed++; }
+          await sleep(60);
+        }
+      }
+      renderHud(); refreshMap();
+      $("progress").textContent = `Finding houses: ${Math.min(i + 100, entries.length)} of ${entries.length}`;
+    }
+    $("progress").textContent = missed ? `${missed} address${missed === 1 ? "" : "es"} couldn't be found on the map.` : "";
+    $("progress").hidden = !missed;
+  }
+
+  /* ---------- camera ---------- */
+  let duck = false, tourIdx = -1, selected = null, orbiting = false;
+  const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  const moveDone = () => new Promise(res => map.once("moveend", res));
+
+  function stopOrbit() { orbiting = false; map.stop(); }
+  async function overview(duration = 4500) {
+    if (!placed.length) return;
+    const b = new mapboxgl.LngLatBounds();
+    placed.forEach(e => b.extend([e.lng, e.lat]));
+    const cam = map.cameraForBounds(b, { padding: { top: 190, bottom: 120, left: 50, right: 50 }, maxZoom: 15.5 });
+    if (!cam) return;
+    map.flyTo({ ...cam, pitch: 52, bearing: -18, duration, curve: 1.5, easing: ease, essential: true });
+    await moveDone();
+  }
+  async function flyToHouse(e, duration = 3800) {
+    orbiting = false;
+    map.flyTo({ center: [e.lng, e.lat], zoom: 17.6, pitch: 64, bearing: map.getBearing() + 35, duration, curve: 1.6, easing: ease, essential: true, offset: [0, 60] });
+    await moveDone();
+  }
+  // Glide slowly around the house, like a bird circling
+  async function orbit(seconds) {
+    orbiting = true;
+    const start = performance.now();
+    while (orbiting && (!seconds || performance.now() - start < seconds * 1000)) {
+      map.rotateTo(map.getBearing() + 40, { duration: 5000, easing: t => t, essential: true });
+      await moveDone();
+    }
+    orbiting = false;
+  }
+
+  function select(e) {
+    selected = e;
+    markers.forEach((m, fp) => m.getElement().classList.toggle("sel", fp === e.fp));
+    $("sName").textContent = e.name || "No name";
+    $("sSub").textContent = [e.age ? "Age " + e.age : "", e.note].filter(Boolean).join(", ");
+    $("sChip").textContent = e.tier.short; $("sChip").style.setProperty("--tc", e.tier.color);
+    $("sAddr").textContent = [e.address, e.county].filter(Boolean).join(", ");
+    $("sStatus").textContent = e.status.text; $("sStatus").style.color = e.status.color;
+    $("sApprox").hidden = !e.approx;
+    $("sheet").hidden = false;
+  }
+  $("sClose").onclick = () => { $("sheet").hidden = true; selected = null; markers.forEach(m => m.getElement().classList.remove("sel")); stopOrbit(); };
+  $("sOrbit").onclick = async () => { if (!selected) return; stopDuck(); await flyToHouse(selected, 1800); orbit(0); };
+
+  // Any touch on the map takes back control
+  ["mousedown", "touchstart", "wheel"].forEach(t => map.getCanvasContainer().addEventListener(t, () => { if (duck) stopDuck(); orbiting = false; }, { passive: true }));
+
+  /* ---------- duck mode: glide from house to house ---------- */
+  function stopDuck() { duck = false; orbiting = false; $("btnDuck").textContent = "Duck mode"; $("btnDuck").classList.remove("on"); }
+  async function duckTour() {
+    while (duck && placed.length) {
+      tourIdx = (tourIdx + 1) % placed.length;
+      const e = placed[tourIdx];
+      select(e);
+      if (Math.random() < 0.5) releaseFlock();
+      await flyToHouse(e, 5200);
+      if (!duck) break;
+      await orbit(8);
+    }
+  }
+  $("btnDuck").onclick = () => {
+    if (duck) { stopDuck(); stopOrbit(); return; }
+    if (!placed.length) { toast("No houses on the map yet"); return; }
+    duck = true; $("btnDuck").textContent = "Stop"; $("btnDuck").classList.add("on");
+    releaseFlock(); duckTour();
+  };
+  $("btnHome").onclick = () => { stopDuck(); stopOrbit(); $("sheet").hidden = true; overview(3200); };
+  $("btnNext").onclick = () => {
+    if (!placed.length) return;
+    stopDuck(); tourIdx = (tourIdx + 1) % placed.length; const e = placed[tourIdx]; select(e); flyToHouse(e);
+  };
+
+  /* ---------- a little flock of ducks crosses the sky now and then ---------- */
+  const DUCK_SVG = '<svg viewBox="0 0 34 16" class="duck"><path d="M1 9 Q9 1 17 9 Q25 1 33 9" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>';
+  function releaseFlock() {
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const flock = $("flock"), top = 22 + Math.random() * 28, n = 5 + Math.floor(Math.random() * 3), dur = 11 + Math.random() * 5;
+    for (let i = 0; i < n; i++) {
+      const w = document.createElement("div");
+      w.className = "flying"; w.style.position = "absolute";
+      const row = Math.ceil(i / 2), side = i % 2 ? 1 : -1;
+      w.style.top = `calc(${top}vh + ${row * side * 16}px)`; w.style.left = `${-row * 26}px`;
+      w.style.setProperty("--dur", dur + "s"); w.style.setProperty("--drift", (-30 - Math.random() * 60) + "px");
+      w.innerHTML = DUCK_SVG; w.firstChild.style.animationDelay = (Math.random() * .4) + "s";
+      flock.appendChild(w);
+      setTimeout(() => w.remove(), dur * 1000 + 500);
+    }
+  }
+  setTimeout(releaseFlock, 2500);
+  setInterval(() => { if (!document.hidden && Math.random() < 0.6) releaseFlock(); }, 40000);
+
+  /* ---------- go: start from space, find the houses, glide down to them ---------- */
+  map.once("load", async () => {
+    let spinning = true;                    // slow spin of the globe while the houses are found
+    const spin = () => { if (!spinning) return; map.easeTo({ center: [map.getCenter().lng + 8, map.getCenter().lat], duration: 1000, easing: t => t }); map.once("moveend", spin); };
+    spin();
+    await locateAll();
+    spinning = false; map.stop();
+    await sleep(150);
+    if (placed.length) overview(5200);
+  });
+})();
+</script>
+</body>
+</html>
