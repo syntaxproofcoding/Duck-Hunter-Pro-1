@@ -1857,7 +1857,9 @@ const TPSProfile = (() => {
   const syncable = k => !!k && !SYNC_SKIP.test(k);
   const jget = (k, d) => { try { return JSON.parse(localStorage.getItem(k) || "") ?? d; } catch { return d; } };
   const jset = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
-  let syncCfg = jget("sync-cfg", null), syncAuth = jget("sync-auth", null);
+  // Your Supabase project is built in, so after a reinstall you only need to sign in (a project saved in the app takes priority)
+  const BUILT_IN_SYNC = { url: "https://dzgjqfeufdqvrfbhbvpd.supabase.co", key: "sb_publishable_EjQx91xM9iHv18vFJmG6Bg_qKHpxYHA" };
+  let syncCfg = jget("sync-cfg", null) || BUILT_IN_SYNC, syncAuth = jget("sync-auth", null);
   let syncMeta = jget("sync-meta", {}), syncDirty = new Set(jget("sync-dirty", [])), syncProf = jget("sync-prof", {});
   let syncTimer = null, syncBusy = false, syncState = "";
 
@@ -1978,7 +1980,7 @@ const TPSProfile = (() => {
     if (!/^https:\/\/.+/.test(url) || key.length < 20) { toast("Paste the Project URL and anon key from Supabase"); return; }
     syncCfg = { url, key }; jset("sync-cfg", syncCfg); renderSync();
   };
-  $("syncCfgEdit").onclick = () => { $("syncUrl").value = syncCfg.url; $("syncKey").value = syncCfg.key; syncCfg = null; localStorage.removeItem("sync-cfg"); renderSync(); };
+  $("syncCfgEdit").onclick = () => { $("syncUrl").value = syncCfg.url; $("syncKey").value = syncCfg.key; syncCfg = null; renderSync(); };
   async function doAuth(signup) {
     const email = $("syncEmail").value.trim(), password = $("syncPass").value;
     if (!email || password.length < 6) { toast("Enter your email and a password (6+ characters)"); return; }

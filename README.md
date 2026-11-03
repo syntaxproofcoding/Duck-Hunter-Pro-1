@@ -1,8 +1,11 @@
 # TPS Notes
 
-Offline parser + notes app. Everything runs on the phone; no data is sent anywhere.
+Parser, notes, call tracking and progress for TruePeopleSearch profiles, built for Android (Chrome).
 
-Upload all files (except this README if you like) to the top level of the GitHub repo.
-When updating, bump the CACHE name in sw.js (for example tps-notes-v7 to tps-notes-v8).
+- index.html: the app. Works offline once installed (Chrome menu > Install app).
+- duck.html: Duck View, a 3D satellite map of your entries (needs internet; uses Mapbox).
+- sw.js: offline support. When updating, raise the CACHE number on its first line.
+- supabase-setup.sql: one-time setup for cloud sync (run in Supabase > SQL Editor).
 
-Notes are stored in Chrome's storage for this site only. Clearing Chrome's site data deletes them, so use Share on important notes as a backup.
+Your data lives on your phone. If you sign in to Cloud sync (Stats tab), it is also saved to your private Supabase project.
+Duck View sends entry addresses to Mapbox to place them on the map.
