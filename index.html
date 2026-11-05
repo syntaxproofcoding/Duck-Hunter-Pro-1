@@ -50,7 +50,7 @@
   .hdrR { display: flex; align-items: center; gap: 10px; }
   #duckLink { font-size: .82rem; font-weight: 700; color: var(--amber-ink); background: var(--amber); padding: 6px 12px; border-radius: 16px; text-decoration: none; }
 
-  .tabs { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--well); border: 1.5px solid var(--line); border-radius: var(--r-sm); padding: 3px; margin-bottom: 14px; }
+  .tabs { display: grid; grid-template-columns: repeat(5, 1fr); background: var(--well); border: 1.5px solid var(--line); border-radius: var(--r-sm); padding: 3px; margin-bottom: 14px; }
   .tabs button { border: 0; background: transparent; color: var(--muted); min-height: 44px; }
   .tabs button.on { background: var(--surface); color: var(--text); box-shadow: inset 0 -3px 0 var(--amber); }
 
@@ -150,7 +150,7 @@
   }
   /* ---------- game layer ---------- */
   .hud {
-    display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 10px;
+    display: grid; grid-template-columns: auto auto 1fr auto auto; align-items: center; gap: 9px;
     width: 100%; padding: 8px 12px; margin: 0 0 12px; min-height: 52px;
     background: var(--surface); border: 1.5px solid var(--line); border-radius: var(--r-lg); text-align: left;
   }
@@ -223,7 +223,7 @@
   @keyframes pop { from { transform: scale(.4); opacity: 0; } }
   @media (prefers-reduced-motion: reduce) { #xpPop.go, #lvlUp .box { animation: none; } .bar i, .hud .day .prg { transition: none; } }
   /* ---------- work page ---------- */
-  .tabs button { font-size: .92rem; padding: 0 4px; }
+  .tabs button { font-size: .84rem; padding: 0 2px; }
   .badge { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 4px; border-radius: 9px; background: var(--danger); color: #fff; font-size: .7rem; line-height: 18px; vertical-align: 1px; }
   .workBar { display: flex; gap: 8px; margin-bottom: 10px; }
   .workBar select { flex: 1; min-width: 0; }
@@ -300,6 +300,32 @@
   .people { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; font-size: .9rem; }
   .people span { color: var(--muted); font-size: .8rem; }
   .bio p { margin: 0 0 8px; font-size: .88rem; color: var(--muted); }
+  /* ---------- Me tab ---------- */
+  .hudAv svg { width: 40px; height: 40px; display: block; border-radius: 50%; }
+  .breadTop { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .panel details { margin-top: 10px; } .panel summary { color: var(--muted); font-size: .88rem; cursor: pointer; min-height: 32px; }
+  #avSeg { grid-template-columns: repeat(4, 1fr); margin-top: 12px; }
+  .stage { text-align: center; }
+  .stage svg { width: min(230px, 62vw); height: auto; display: block; margin: 0 auto 12px; }
+  #avMain { width: 100%; } #avMain:disabled { opacity: .6; }
+  .buyBar { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); text-align: left; }
+  .buyBar .bn { flex: 1; min-width: 0; } .buyBar .bn b { display: block; } .buyBar .bn span { color: var(--muted); font-size: .85rem; }
+  .buyBar button { flex: none; padding: 0 14px; }
+  .items { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .item { display: grid; gap: 2px; text-align: left; padding: 8px 10px; min-height: 56px; position: relative; }
+  .item .nm { font-size: .88rem; } .item .pr { font-size: .76rem; font-weight: 600; color: var(--muted); }
+  .item .dot { position: absolute; right: 10px; top: 10px; width: 14px; height: 14px; border-radius: 50%; }
+  .item.owned .pr { color: var(--ok); }
+  .item.wearing { border-color: var(--ok); } .item.wearing .pr { color: var(--ok); }
+  .item.previewing { border-color: var(--amber); box-shadow: 0 0 0 2px var(--amber) inset; }
+  .item.locked { opacity: .5; }
+  .looks .row { flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  .looks .lbl { margin-top: 10px; }
+  .looks .row > .swatch { flex: none; width: 40px; height: 40px; min-height: 40px; padding: 0; border-radius: 50%; border: 3px solid transparent; }
+  .looks .row > .swatch.on { border-color: var(--text); }
+  .swatch.on { border-color: var(--text); }
+  .hstyle { min-height: 40px; padding: 0 12px; font-size: .85rem; font-weight: 600; }
+  .hstyle.on { border-color: var(--amber); color: var(--amber); }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   @media (prefers-reduced-motion: reduce) { button:active { transform: none; } .sheet { animation: none; } }
 </style>
@@ -311,6 +337,7 @@
 </header>
 
 <button class="hud" id="hud" type="button" aria-label="Open stats">
+  <span class="hudAv" id="hudAv"></span>
   <span class="lv">LV<b id="hudLv">1</b></span>
   <span class="xpwrap"><span class="bar"><i id="hudBar"></i></span><span class="xptxt" id="hudXp">0 / 100 XP</span></span>
   <span class="day"><svg viewBox="0 0 24 24" aria-hidden="true"><circle class="trk" cx="12" cy="12" r="9" fill="none" stroke-width="4"/><circle class="prg" id="hudRing" cx="12" cy="12" r="9" fill="none" stroke-width="4" stroke-linecap="round" stroke-dasharray="56.55" stroke-dashoffset="56.55"/></svg><b id="hudDay">0/25</b></span>
@@ -321,6 +348,7 @@
   <button id="tabParser" type="button" class="on">Parser</button>
   <button id="tabNotes" type="button">Notes</button>
   <button id="tabWork" type="button">Work</button>
+  <button id="tabMe" type="button">Me</button>
   <button id="tabStats" type="button">Stats</button>
 </nav>
 
@@ -399,6 +427,38 @@
   <ul class="cards" id="workList"></ul>
   <button id="workMore" type="button" style="width:100%;margin-top:12px" hidden>Show more</button>
   <p class="empty" id="workEmpty" hidden></p>
+</section>
+
+<!-- Me: Bread + avatars -->
+<section id="viewMe" hidden>
+  <div class="panel">
+    <div class="breadTop"><div class="big" id="brBal">🍞 0</div><span class="sub" style="margin:0">Bread</span></div>
+    <div class="sub" id="brSub"></div>
+    <details><summary>How to earn Bread</summary><div class="ptable" id="brEarn" style="margin-top:8px"></div>
+      <p class="fine" style="margin-top:8px">Bread only counts entries still in your notes, and undoing a call takes its Bread back, just like XP.</p></details>
+  </div>
+  <div class="seg" id="avSeg">
+    <button type="button" data-a="duck" class="on">Duck</button>
+    <button type="button" data-a="agent">Agent</button>
+    <button type="button" data-a="hq">HQ</button>
+    <button type="button" data-a="extra">Extras</button>
+  </div>
+  <div class="panel stage">
+    <div id="avStage"></div>
+    <button id="avMain" type="button">Use as my avatar</button>
+    <div class="buyBar" id="buyBar" hidden>
+      <div class="bn"><b id="buyName"></b><span id="buyPrice"></span></div>
+      <button id="buyCancel" type="button" class="ghost">Cancel</button>
+      <button id="buyBtn" type="button" class="primary">Buy</button>
+    </div>
+  </div>
+  <div class="panel looks" id="avLook" hidden style="margin-top:12px">
+    <h3>Your look (free)</h3>
+    <div class="lbl">Skin tone</div><div class="row" id="lookSkin"></div>
+    <div class="lbl">Hair</div><div class="row" id="lookHair"></div>
+    <div class="lbl">Hair color</div><div class="row" id="lookHairColor"></div>
+  </div>
+  <div class="stats" id="shop" style="margin-top:12px"></div>
 </section>
 
 <!-- Stats -->
@@ -901,6 +961,201 @@ const TPSProfile = (() => {
   const looksLikeTPS = text => /\n\s*phone numbers\s*\n/i.test(text) && /\n\s*current address\s*\n/i.test(text);
   return { parse, looksLikeTPS };
 })();
+/* Avatars: a duck to dress up, your agent, and your HQ. All drawn as SVG, no images needed. */
+const Avatar = (() => {
+  // ---------- shop catalog (prices in Bread) ----------
+  const ITEMS = [
+    // Duck
+    { id: "d-classic",  av: "duck", slot: "color", name: "Classic Yellow", price: 0 },
+    { id: "d-white",    av: "duck", slot: "color", name: "Snow White",     price: 60 },
+    { id: "d-mallard",  av: "duck", slot: "color", name: "Mallard",        price: 120 },
+    { id: "d-midnight", av: "duck", slot: "color", name: "Midnight",       price: 150 },
+    { id: "d-golden",   av: "duck", slot: "color", name: "Golden Duck",    price: 600 },
+    { id: "d-cap",      av: "duck", slot: "hat",   name: "Ball Cap",       price: 80 },
+    { id: "d-beanie",   av: "duck", slot: "hat",   name: "Beanie",         price: 100 },
+    { id: "d-headset",  av: "duck", slot: "hat",   name: "Call Headset",   price: 150 },
+    { id: "d-tophat",   av: "duck", slot: "hat",   name: "Top Hat",        price: 250 },
+    { id: "d-crown",    av: "duck", slot: "hat",   name: "Crown",          price: 800 },
+    { id: "d-glasses",  av: "duck", slot: "eyes",  name: "Glasses",        price: 90 },
+    { id: "d-shades",   av: "duck", slot: "eyes",  name: "Shades",         price: 150 },
+    { id: "d-bowtie",   av: "duck", slot: "neck",  name: "Bow Tie",        price: 80 },
+    { id: "d-tie",      av: "duck", slot: "neck",  name: "Necktie",        price: 100 },
+    { id: "d-scarf",    av: "duck", slot: "neck",  name: "Scarf",          price: 120 },
+    { id: "d-chain",    av: "duck", slot: "neck",  name: "Gold Chain",     price: 300 },
+    // Agent
+    { id: "a-tee",      av: "agent", slot: "outfit", name: "T-Shirt",          price: 0 },
+    { id: "a-polo",     av: "agent", slot: "outfit", name: "Polo",             price: 100 },
+    { id: "a-button",   av: "agent", slot: "outfit", name: "Button-Up",        price: 150 },
+    { id: "a-blazer",   av: "agent", slot: "outfit", name: "Blazer",           price: 300 },
+    { id: "a-hoodie",   av: "agent", slot: "outfit", name: "Duck Hunter Hoodie", price: 400 },
+    { id: "a-suit",     av: "agent", slot: "outfit", name: "Power Suit",       price: 500 },
+    { id: "a-headset",  av: "agent", slot: "head",   name: "Call Headset",     price: 150 },
+    { id: "a-glasses",  av: "agent", slot: "eyes",   name: "Glasses",          price: 90 },
+    { id: "a-shades",   av: "agent", slot: "eyes",   name: "Shades",           price: 150 },
+    { id: "a-badge",    av: "agent", slot: "neck",   name: "Agent Badge",      price: 80 },
+    { id: "a-chain",    av: "agent", slot: "neck",   name: "Gold Chain",       price: 300 },
+    // HQ (stages must be bought in order)
+    { id: "h-table",    av: "hq", slot: "stage", name: "Kitchen Table",   price: 0,    stage: 0 },
+    { id: "h-cubicle",  av: "hq", slot: "stage", name: "Cubicle",         price: 150,  stage: 1 },
+    { id: "h-office",   av: "hq", slot: "stage", name: "Small Office",    price: 400,  stage: 2 },
+    { id: "h-corner",   av: "hq", slot: "stage", name: "Corner Office",   price: 900,  stage: 3 },
+    { id: "h-building", av: "hq", slot: "stage", name: "Office Building", price: 2000, stage: 4 },
+    { id: "h-sky",      av: "hq", slot: "stage", name: "Skyscraper",      price: 4500, stage: 5 },
+    { id: "h-tower",    av: "hq", slot: "stage", name: "Duck Tower",      price: 9000, stage: 6 },
+    { id: "h-plant",    av: "hq", slot: "plant",  name: "Office Plant",   price: 60 },
+    { id: "h-trophy",   av: "hq", slot: "trophy", name: "Trophy",         price: 200 },
+    { id: "h-neon",     av: "hq", slot: "neon",   name: "Neon Sign",      price: 350 },
+    // Extras
+    { id: "x-amber",    av: "extra", slot: "accent", name: "Amber accent",  price: 0,   color: "#f0b429" },
+    { id: "x-teal",     av: "extra", slot: "accent", name: "Teal accent",   price: 120, color: "#2dd4bf" },
+    { id: "x-sky",      av: "extra", slot: "accent", name: "Sky accent",    price: 120, color: "#38bdf8" },
+    { id: "x-violet",   av: "extra", slot: "accent", name: "Violet accent", price: 120, color: "#a78bfa" },
+    { id: "x-rose",     av: "extra", slot: "accent", name: "Rose accent",   price: 120, color: "#fb7185" },
+    { id: "x-lime",     av: "extra", slot: "accent", name: "Lime accent",   price: 120, color: "#a3e635" },
+    { id: "x-goldflock",av: "extra", slot: "flock",  name: "Golden flock in Duck View", price: 400 },
+    { id: "x-freeze",   av: "extra", slot: "freeze", name: "Streak Freeze", price: 75, consumable: true },
+  ];
+  const BY_ID = Object.fromEntries(ITEMS.map(i => [i.id, i]));
+  const DEFAULTS = { "duck.color": "d-classic", "agent.outfit": "a-tee", "hq.stage": "h-table", "extra.accent": "x-amber" };
+  const SLOT_NAMES = { color: "Feathers", hat: "Hats", eyes: "Eyewear", neck: "Neckwear", outfit: "Outfits", head: "Headgear",
+                       stage: "Headquarters", plant: "Decor", trophy: "Decor", neon: "Decor", accent: "App accent color", flock: "Duck View", freeze: "Streak protection" };
+
+  const SKINS = ["#f6d7c3", "#eac0a0", "#d39c74", "#a86b45", "#7a4a2c", "#4d2e1c"];
+  const HAIR_COLORS = ["#1c1714", "#4a2f1d", "#8b5a2b", "#d9b26f", "#b9b9b9"];
+  const HAIR_STYLES = ["short", "long", "curly", "bun", "buzz", "bald"];
+
+  const svg = (inner, extra = "") => `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" ${extra}>${inner}</svg>`;
+
+  // ---------- Duck ----------
+  const DUCK_COLORS = {
+    "d-classic":  { body: "#f7d046", head: "#f7d046", wing: "#e3b62a" },
+    "d-white":    { body: "#f4f4ef", head: "#f4f4ef", wing: "#d9d9d2" },
+    "d-mallard":  { body: "#a58b6f", head: "#1f7a4d", wing: "#7d6450", ring: true },
+    "d-midnight": { body: "#30323e", head: "#30323e", wing: "#22232c" },
+    "d-golden":   { body: "#f0b429", head: "#f7c948", wing: "#d4940f", shine: true },
+  };
+  function duck(eq) {
+    const c = DUCK_COLORS[eq["duck.color"]] || DUCK_COLORS["d-classic"];
+    let s = `<defs><clipPath id="dkc"><circle cx="100" cy="100" r="96"/></clipPath></defs><g clip-path="url(#dkc)"><rect width="200" height="200" fill="#1d3a5f"/><path d="M0 128 Q100 112 200 128 L200 200 L0 200 Z" fill="#2c5f8a" opacity=".6"/>`;
+    s += `<ellipse cx="98" cy="176" rx="56" ry="7" fill="rgba(0,0,0,.25)"/>`;
+    s += `<path d="M76 164 l-12 10 h24 z M104 166 l-10 9 h22 z" fill="#f28c28"/>`;
+    s += `<path d="M44 120 L20 100 L40 134 Z" fill="${c.body}"/>`;
+    s += `<ellipse cx="95" cy="132" rx="60" ry="40" fill="${c.body}"/>`;
+    s += `<path d="M58 122 Q96 100 128 128 Q100 152 60 140 Z" fill="${c.wing}"/>`;
+    if (c.ring) s += `<path d="M108 106 Q128 116 150 106" fill="none" stroke="#fff" stroke-width="5"/>`;
+    s += `<circle cx="128" cy="80" r="32" fill="${c.head}"/>`;
+    s += `<path d="M152 80 Q180 82 177 92 Q160 99 148 92 Z" fill="#f28c28"/>`;
+    s += `<circle cx="137" cy="72" r="5" fill="#111"/><circle cx="139" cy="70" r="1.7" fill="#fff"/>`;
+    if (c.shine) s += `<path d="M58 70 l3 8 l8 3 l-8 3 l-3 8 l-3 -8 l-8 -3 l8 -3 z M168 40 l2 6 l6 2 l-6 2 l-2 6 l-2 -6 l-6 -2 l6 -2 z" fill="#fff6c9"/>`;
+    const neck = {
+      "d-tie": `<path d="M120 106 h12 l-3 6 h-6 z" fill="#c62828"/><path d="M123 112 h6 l4 26 l-7 8 l-7 -8 z" fill="#d93a3a"/>`,
+      "d-bowtie": `<path d="M112 104 l14 7 l-14 7 z M140 104 l-14 7 l14 7 z" fill="#7c3aed"/><circle cx="126" cy="111" r="4" fill="#5b21b6"/>`,
+      "d-scarf": `<path d="M98 100 Q126 116 156 100 L158 111 Q126 126 98 111 Z" fill="#16a34a"/><path d="M140 110 l7 26 l-10 2 l-5 -24 z" fill="#15803d"/>`,
+      "d-chain": `<path d="M102 104 Q126 130 152 104" fill="none" stroke="#f0b429" stroke-width="4" stroke-dasharray="4 3"/><circle cx="127" cy="119" r="6.5" fill="#f0b429" stroke="#c98a00" stroke-width="1.5"/>`,
+    }[eq["duck.neck"]];
+    if (neck) s += neck;
+    const eyes = {
+      "d-glasses": `<circle cx="137" cy="72" r="9" fill="rgba(255,255,255,.15)" stroke="#333" stroke-width="2.5"/><path d="M104 70 h24" stroke="#333" stroke-width="2.5"/>`,
+      "d-shades": `<path d="M124 65 h30 v8 q0 9 -10 9 h-10 q-10 0 -10 -9 z" fill="#111"/><path d="M104 69 h20" stroke="#111" stroke-width="3"/><path d="M130 68 l6 0" stroke="#555" stroke-width="2"/>`,
+    }[eq["duck.eyes"]];
+    if (eyes) s += eyes;
+    const hat = {
+      "d-cap": `<path d="M98 60 Q128 28 158 60 Z" fill="#d93a3a"/><path d="M152 58 Q174 57 178 64 L152 64 Z" fill="#b52d2d"/><circle cx="128" cy="38" r="3" fill="#b52d2d"/>`,
+      "d-beanie": `<path d="M97 62 Q128 20 159 62 Z" fill="#3b82f6"/><rect x="95" y="55" width="66" height="11" rx="5" fill="#2563eb"/><circle cx="128" cy="27" r="7" fill="#fff"/>`,
+      "d-headset": `<path d="M97 82 Q96 42 128 42 Q160 42 159 82" fill="none" stroke="#222" stroke-width="5"/><rect x="90" y="72" width="13" height="19" rx="5" fill="#222"/><path d="M97 90 Q108 110 140 102" stroke="#222" stroke-width="3" fill="none"/><circle cx="142" cy="102" r="4.5" fill="#222"/>`,
+      "d-tophat": `<rect x="108" y="14" width="40" height="38" rx="3" fill="#1c1c22"/><rect x="97" y="50" width="62" height="8" rx="3" fill="#1c1c22"/><rect x="108" y="40" width="40" height="7" fill="#d93a3a"/>`,
+      "d-crown": `<path d="M104 56 L107 28 L119 44 L128 22 L137 44 L149 28 L152 56 Z" fill="#f0b429" stroke="#c98a00" stroke-width="2"/><circle cx="128" cy="42" r="3.5" fill="#e11d48"/><circle cx="113" cy="49" r="2.5" fill="#38bdf8"/><circle cx="143" cy="49" r="2.5" fill="#38bdf8"/>`,
+    }[eq["duck.hat"]];
+    if (hat) s += hat;
+    return s + `</g>`;
+  }
+
+  // ---------- Agent ----------
+  function agent(eq, look) {
+    const skin = SKINS[look.skin] || SKINS[2], hc = HAIR_COLORS[look.hairColor] || HAIR_COLORS[0], hs = look.hair || "short";
+    let s = `<defs><clipPath id="agc"><circle cx="100" cy="100" r="96"/></clipPath></defs><g clip-path="url(#agc)"><rect width="200" height="200" fill="#2a3550"/>`;
+    if (hs === "long") s += `<path d="M58 92 Q56 42 100 42 Q144 42 142 92 L148 150 Q100 162 52 150 Z" fill="${hc}"/>`;
+    // outfit
+    const outfit = eq["agent.outfit"] || "a-tee";
+    const torso = (fill) => `<path d="M26 210 Q28 146 100 138 Q172 146 174 210 Z" fill="${fill}"/>`;
+    s += `<rect x="87" y="112" width="26" height="34" rx="9" fill="${skin}"/>`;
+    if (outfit === "a-tee") s += torso("#4b5563") + `<path d="M84 140 Q100 152 116 140" fill="none" stroke="#374151" stroke-width="4"/>`;
+    if (outfit === "a-polo") s += torso("#2563eb") + `<path d="M84 138 l16 14 l-6 8 z M116 138 l-16 14 l6 8 z" fill="#fff"/><circle cx="100" cy="164" r="2" fill="#fff"/><circle cx="100" cy="174" r="2" fill="#fff"/>`;
+    if (outfit === "a-button") s += torso("#e5e7eb") + `<path d="M84 138 l16 12 l-8 10 z M116 138 l-16 12 l8 10 z" fill="#cbd5e1"/><path d="M100 150 V210" stroke="#cbd5e1" stroke-width="2"/><circle cx="100" cy="166" r="2.2" fill="#94a3b8"/><circle cx="100" cy="182" r="2.2" fill="#94a3b8"/>`;
+    if (outfit === "a-blazer") s += torso("#1f2937") + `<path d="M86 140 L100 186 L114 140 Q100 146 86 140 Z" fill="#f8fafc"/><path d="M86 140 L96 176 L80 156 Z M114 140 L104 176 L120 156 Z" fill="#111827"/>`;
+    if (outfit === "a-suit") s += torso("#111827") + `<path d="M86 140 L100 190 L114 140 Q100 146 86 140 Z" fill="#fff"/><path d="M97 146 h6 l3 30 l-6 8 l-6 -8 z" fill="#c62828"/><path d="M86 140 L96 180 L78 158 Z M114 140 L104 180 L122 158 Z" fill="#0b1220"/>`;
+    if (outfit === "a-hoodie") s += torso("#f0b429") + `<path d="M74 142 Q100 168 126 142" fill="none" stroke="#c98a00" stroke-width="7"/><path d="M93 152 v20 M107 152 v20" stroke="#fff" stroke-width="2.5"/><circle cx="100" cy="182" r="11" fill="#231a00"/><text x="100" y="187" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="900" font-size="12" fill="#f0b429">DH</text>`;
+    // head
+    s += `<circle cx="64" cy="90" r="8" fill="${skin}"/><circle cx="136" cy="90" r="8" fill="${skin}"/><circle cx="100" cy="86" r="37" fill="${skin}"/>`;
+    const hair = {
+      short: `<path d="M63 84 Q62 44 100 44 Q138 44 137 84 Q132 62 100 60 Q70 62 63 84 Z" fill="${hc}"/>`,
+      long:  `<path d="M63 86 Q62 44 100 44 Q138 44 137 86 Q130 60 100 58 Q70 60 63 86 Z" fill="${hc}"/>`,
+      buzz:  `<path d="M65 78 Q67 48 100 48 Q133 48 135 78 Q128 60 100 58 Q72 60 65 78 Z" fill="${hc}" opacity=".85"/>`,
+      curly: [[70, 66], [82, 52], [100, 47], [118, 52], [130, 66], [64, 80], [136, 80]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="13" fill="${hc}"/>`).join(""),
+      bun:   `<circle cx="100" cy="40" r="15" fill="${hc}"/><path d="M63 84 Q62 46 100 46 Q138 46 137 84 Q132 62 100 60 Q70 62 63 84 Z" fill="${hc}"/>`,
+      bald:  ``,
+    }[hs];
+    s += hair;
+    s += `<circle cx="86" cy="90" r="4.2" fill="#1f1f1f"/><circle cx="114" cy="90" r="4.2" fill="#1f1f1f"/>`;
+    s += `<path d="M87 104 Q100 115 113 104" stroke="#7a3b2e" stroke-width="3.2" fill="none" stroke-linecap="round"/>`;
+    const eyes = {
+      "a-glasses": `<circle cx="86" cy="90" r="10" fill="rgba(255,255,255,.12)" stroke="#222" stroke-width="2.6"/><circle cx="114" cy="90" r="10" fill="rgba(255,255,255,.12)" stroke="#222" stroke-width="2.6"/><path d="M96 90 h8" stroke="#222" stroke-width="2.6"/>`,
+      "a-shades": `<path d="M74 84 h24 v6 q0 9 -12 9 q-12 0 -12 -9 z M102 84 h24 v6 q0 9 -12 9 q-12 0 -12 -9 z" fill="#111"/><path d="M98 87 h4" stroke="#111" stroke-width="3"/>`,
+    }[eq["agent.eyes"]];
+    if (eyes) s += eyes;
+    if (eq["agent.head"] === "a-headset") s += `<path d="M62 92 Q60 44 100 44 Q140 44 138 92" fill="none" stroke="#222" stroke-width="5"/><rect x="54" y="82" width="14" height="20" rx="5" fill="#222"/><path d="M62 100 Q70 118 90 116" stroke="#222" stroke-width="3" fill="none"/><circle cx="92" cy="116" r="4.5" fill="#222"/>`;
+    const neck = {
+      "a-badge": `<path d="M84 140 L100 170 L116 140" fill="none" stroke="#2563eb" stroke-width="4"/><rect x="88" y="168" width="24" height="18" rx="3" fill="#fff" stroke="#94a3b8"/><rect x="88" y="168" width="24" height="5" rx="2" fill="#2563eb"/><text x="100" y="183" text-anchor="middle" font-family="system-ui,sans-serif" font-size="6.5" font-weight="900" fill="#111">AGENT</text>`,
+      "a-chain": `<path d="M82 140 Q100 170 118 140" fill="none" stroke="#f0b429" stroke-width="4" stroke-dasharray="4 3"/><circle cx="100" cy="158" r="7" fill="#f0b429" stroke="#c98a00" stroke-width="1.5"/>`,
+    }[eq["agent.neck"]];
+    if (neck) s += neck;
+    return s + `</g>`;
+  }
+
+  // ---------- HQ ----------
+  function hq(eq) {
+    const st = (BY_ID[eq["hq.stage"]] || BY_ID["h-table"]).stage;
+    let s = `<defs><clipPath id="hqc"><rect width="200" height="200" rx="22"/></clipPath><linearGradient id="hqsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5aa7e6"/><stop offset="1" stop-color="#bfe3ff"/></linearGradient></defs><g clip-path="url(#hqc)">`;
+    const win = (x, y, w, h) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#hqsky)" stroke="#8a9bb0" stroke-width="3"/>`;
+    const skyline = (y) => `<path d="M0 ${y} h20 v-24 h14 v-12 h12 v36 h18 v-44 h16 v44 h20 v-30 h14 v30 h22 v-52 h18 v52 h46 V200 H0 Z" fill="#5d7189" opacity=".75"/>`;
+    if (st <= 3) {
+      const wall = ["#f3e5d0", "#cfd8dc", "#e8eef5", "#2b3445"][st], floor = ["#b08968", "#90a4ae", "#8d6e63", "#4a3428"][st];
+      s += `<rect width="200" height="200" fill="${wall}"/><rect y="150" width="200" height="50" fill="${floor}"/>`;
+      if (st === 0) s += win(120, 34, 56, 46) + `<rect x="24" y="118" width="120" height="10" rx="3" fill="#8b5e3c"/><rect x="34" y="128" width="8" height="40" fill="#6d4a2f"/><rect x="126" y="128" width="8" height="40" fill="#6d4a2f"/><path d="M56 118 l6 -26 h46 l6 26 z" fill="#9ca3af"/><rect x="62" y="96" width="44" height="18" fill="#1f2937"/><rect x="118" y="104" width="12" height="14" rx="2" fill="#fff"/><path d="M130 108 q6 0 6 5 q0 5 -6 5" fill="none" stroke="#fff" stroke-width="2"/>`;
+      if (st === 1) s += `<rect x="10" y="56" width="16" height="104" fill="#78909c"/><rect x="174" y="56" width="16" height="104" fill="#78909c"/><rect x="10" y="56" width="180" height="10" fill="#607d8b"/><rect x="30" y="116" width="140" height="10" fill="#b0bec5"/><rect x="70" y="80" width="54" height="34" rx="3" fill="#1f2937"/><rect x="92" y="114" width="10" height="4" fill="#455a64"/><rect x="148" y="98" width="14" height="18" rx="2" fill="#fff59d"/>`;
+      if (st === 2) s += win(24, 30, 64, 56) + `<rect x="140" y="58" width="40" height="92" fill="#8d6e63"/><circle cx="172" cy="106" r="3" fill="#f0b429"/><rect x="30" y="118" width="110" height="10" rx="2" fill="#5d4037"/><rect x="36" y="128" width="98" height="26" fill="#6d4c41"/><rect x="64" y="86" width="50" height="30" rx="3" fill="#1f2937"/>`;
+      if (st === 3) s += win(8, 22, 184, 92) + skyline(114) + `<rect x="8" y="22" width="184" height="92" fill="none" stroke="#a0aec0" stroke-width="4"/><path d="M100 22 v92" stroke="#a0aec0" stroke-width="3"/><rect x="84" y="78" width="32" height="40" rx="9" fill="#1b1b1b"/><rect x="34" y="124" width="132" height="12" rx="3" fill="#3e2723"/><rect x="40" y="136" width="120" height="30" fill="#4e342e"/><rect x="66" y="100" width="40" height="22" rx="3" fill="#111827"/>`;
+    } else {
+      s += `<rect width="200" height="200" fill="url(#hqsky)"/><circle cx="168" cy="34" r="14" fill="#fff5b8"/><rect y="176" width="200" height="24" fill="#4b5563"/><rect y="172" width="200" height="6" fill="#6b9e4c"/>`;
+      if (st === 4) {
+        s += `<rect x="40" y="70" width="120" height="104" fill="#cbd5e1"/><rect x="36" y="64" width="128" height="10" fill="#94a3b8"/>`;
+        for (let r = 0; r < 4; r++) for (let c = 0; c < 5; c++) s += `<rect x="${50 + c * 21}" y="${80 + r * 20}" width="14" height="12" fill="#60a5fa"/>`;
+        s += `<rect x="86" y="150" width="28" height="24" fill="#334155"/><rect x="70" y="48" width="60" height="16" rx="3" fill="#f0b429"/><text x="100" y="60" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="900" font-size="11" fill="#231a00">HQ</text>`;
+      }
+      if (st >= 5) {
+        s += `<rect x="10" y="120" width="34" height="56" fill="#8796ab"/><rect x="156" y="104" width="36" height="72" fill="#8796ab"/>`;
+        const top = st === 5 ? 36 : 26;
+        s += `<path d="M70 176 V${top + 16} L100 ${top} L130 ${top + 16} V176 Z" fill="#334155"/>`;
+        for (let y = top + 24; y < 168; y += 12) s += `<rect x="76" y="${y}" width="48" height="6" fill="${st === 6 ? "#f6c445" : "#7dd3fc"}" opacity=".85"/>`;
+        if (st === 6) s += `<path d="M100 ${top} V6" stroke="#cbd5e1" stroke-width="3"/><path d="M100 8 l16 5 l-16 5 z" fill="#f0b429"/><ellipse cx="100" cy="${top + 2}" rx="18" ry="4" fill="#64748b"/><text x="100" y="${top + 5}" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="900" font-size="7" fill="#fff">H</text><circle cx="100" cy="${top + 40}" r="11" fill="#f0b429" stroke="#fff" stroke-width="2"/><path d="M94 ${top + 41} q6 -8 12 0 q-6 4 -12 0" fill="#231a00"/>`;
+      }
+    }
+    if (eq["hq.plant"]) s += `<path d="M16 186 h26 l-4 -22 h-18 z" fill="#b45309"/><path d="M29 164 q-14 -18 -6 -34 q8 14 6 34 q2 -22 16 -30 q0 20 -16 30" fill="#16a34a"/>`;
+    if (eq["hq.trophy"]) s += `<path d="M160 150 h24 v4 q0 14 -12 16 q-12 -2 -12 -16 z" fill="#f0b429" stroke="#c98a00" stroke-width="1.5"/><rect x="168" y="170" width="8" height="8" fill="#c98a00"/><rect x="162" y="178" width="20" height="6" rx="2" fill="#78350f"/>`;
+    if (eq["hq.neon"]) s += st >= 4
+      ? `<rect x="8" y="10" width="84" height="22" rx="6" fill="rgba(20,10,30,.75)"/><text x="50" y="26" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="900" font-size="12" fill="#ff5fd2" style="filter:drop-shadow(0 0 3px #ff5fd2)">DUCK HQ</text>`
+      : `<rect x="54" y="6" width="92" height="22" rx="6" fill="rgba(20,10,30,.75)"/><text x="100" y="22" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="900" font-size="12" fill="#ff5fd2" style="filter:drop-shadow(0 0 3px #ff5fd2)">DUCK HQ</text>`;
+    return s + `</g>`;
+  }
+
+  let uid = 0;   // each drawing gets its own ids so several can be on screen at once
+  function render(av, eq, look, attrs) {
+    const out = av === "agent" ? svg(agent(eq, look || {}), attrs) : av === "hq" ? svg(hq(eq), attrs) : svg(duck(eq), attrs);
+    const n = ++uid;
+    return out.replace(/\b(dkc|agc|hqc|hqsky)\b/g, m => m + "_" + n);
+  }
+  return { ITEMS, BY_ID, DEFAULTS, SLOT_NAMES, SKINS, HAIR_COLORS, HAIR_STYLES, render };
+})();
 </script>
 <script>
 (() => {
@@ -968,6 +1223,13 @@ const TPSProfile = (() => {
   try { ach = JSON.parse(store.get(ACH_KEY) || "{}"); } catch { ach = {}; }
   const saveXP = () => store.set(XP_KEY, JSON.stringify(xpLog));
 
+  /* ---------- Bread (spendable currency) ---------- */
+  const BREAD_KEY = "tps-bread-v1";
+  const BREAD = { entry: 2, call: 1, success: 20, goalDay: 15, achievement: 25 };   // change these to rebalance earning
+  let bread = { spent: [], owned: {}, equip: {}, main: "duck", look: { skin: 2, hair: "short", hairColor: 0 }, freezes: 0, frozen: [] };
+  try { bread = Object.assign(bread, JSON.parse(store.get(BREAD_KEY) || "{}")); } catch {}
+  const saveBread = () => store.set(BREAD_KEY, JSON.stringify(bread));
+
   /* ---------- point table: change these numbers to rebalance the game ---------- */
   // Higher ranks are harder to close, so successes with them pay more (other outcomes aren't multiplied).
   const RANK_MULT      = { UNDERGRAD: 1, FRESHMAN: 1.25, SOPHOMORE: 1.5, JUNIOR: 2, SENIOR: 2.5, AGE_UNKNOWN: 1 };
@@ -1019,7 +1281,7 @@ const TPSProfile = (() => {
   // Score one card from its history. Recomputed every time, so Undo just removes the event.
   function cardScore(events, tier, now = Date.now()) {
     const m = RANK_MULT[tier] || 1, lastSame = {};
-    let pts = 0, won = false, cb = null, onTime = 0, late = 0, calls = 0;
+    let pts = 0, won = false, cb = null, onTime = 0, late = 0, calls = 0, paid = 0, wonMult = 1;
     for (const e of events) {
       if (cb !== null) {                                      // this action answers the pending call back
         if (e.t > cb + CB_GRACE) { pts -= CB_LATE_PENALTY; late++; }
@@ -1030,6 +1292,8 @@ const TPSProfile = (() => {
       if (lastSame[e.o] && e.t - lastSame[e.o] < REPEAT_WINDOW) p = 0;
       if (e.o === "success") { p = won ? 0 : p * (e.amt === undefined ? 1 : amountTier(e.amt).mult); won = true; }
       if (e.o !== "dnc") calls++;
+      if (e.o !== "dnc" && e.o !== "success" && p > 0) paid++;
+      if (e.o === "success" && p > 0) wonMult = e.amt === undefined ? 1 : amountTier(e.amt).mult;
       pts += Math.round(e.o === "success" ? p * m : p);   // rank value only multiplies successes
       lastSame[e.o] = e.t;
       if (e.o === "cb_voicemail" || e.o === "cb_answered") cb = e.cb;
@@ -1038,7 +1302,7 @@ const TPSProfile = (() => {
     if (overdue) { pts -= CB_LATE_PENALTY; late++; }
     const last = events[events.length - 1];
     const status = !last ? "fresh" : last.o === "success" ? "done" : last.o === "dnc" ? "hidden" : cb !== null ? "callback" : calls ? "attempted" : "fresh";
-    return { pts, status, cb, overdue, onTime, late, calls, won, last };
+    return { pts, status, cb, overdue, onTime, late, calls, paid, won, wonMult, last };
   }
 
   // Every entry in your notes, read from the note text (Name/Age/Phone #/Address/County lines)
@@ -1088,26 +1352,29 @@ const TPSProfile = (() => {
     const xp = live.reduce((s, e) => s + e.xp, 0);
     const perDay = new Map();
     live.forEach(e => perDay.set(dayKey(e.t), (perDay.get(dayKey(e.t)) || 0) + 1));
-    const g = goal(), met = k => (perDay.get(k) || 0) >= g;
+    const g = goal(), realMet = k => (perDay.get(k) || 0) >= g, frozenDays = new Set(bread.frozen || []);
+    const met = k => realMet(k) || frozenDays.has(k);
     const today = perDay.get(dayKey(Date.now())) || 0;
     const d = new Date(); d.setHours(12, 0, 0, 0);
     if (!met(dayKey(d))) d.setDate(d.getDate() - 1);          // today not done yet: streak runs through yesterday
     let streak = 0;
     while (met(dayKey(d))) { streak++; d.setDate(d.getDate() - 1); }
     let best = 0, run = 0, prev = null;
-    [...perDay.keys()].filter(met).map(k => { const [y, m, dd] = k.split("-").map(Number); return new Date(y, m - 1, dd, 12).getTime(); })
+    [...new Set([...perDay.keys(), ...frozenDays])].filter(met).map(k => { const [y, m, dd] = k.split("-").map(Number); return new Date(y, m - 1, dd, 12).getTime(); })
       .sort((a, b) => a - b).forEach(ts => {
         run = prev !== null && Math.round((ts - prev) / 864e5) === 1 ? run + 1 : 1;
         best = Math.max(best, run); prev = ts;
       });
     const todayTiers = new Set(live.filter(e => dayKey(e.t) === dayKey(Date.now())).map(e => e.tier));
+    let paidCalls = 0, winBread = 0;
     let workPts = 0, calls = 0, wins = 0, seniorWins = 0, onTime = 0, due = 0, callsToday = 0, secured = 0, securedToday = 0, bestDeal = 0;
     const now = Date.now(), tk = dayKey(now);
     for (const e of noteEntries()) {
       const w = work[e.fp];
       if (!w || !w.events.length) continue;
       const sc = cardScore(w.events, e.tier, now);
-      workPts += sc.pts; calls += sc.calls; onTime += sc.onTime;
+      workPts += sc.pts; calls += sc.calls; onTime += sc.onTime; paidCalls += sc.paid;
+      if (sc.won) winBread += Math.round(BREAD.success * sc.wonMult);
       if (sc.won) { wins++; if (e.tier === "SENIOR") seniorWins++; }
       if (sc.status === "callback" && sc.cb <= now) due++;
       callsToday += w.events.filter(x => x.o !== "dnc" && dayKey(x.t) === tk).length;
@@ -1115,7 +1382,10 @@ const TPSProfile = (() => {
       if (win && sc.won && win.amt) { secured += win.amt; bestDeal = Math.max(bestDeal, win.amt); if (dayKey(win.t) === tk) securedToday += win.amt; }
     }
     const total = Math.max(0, xp + workPts);
-    return { xp: total, addXp: xp, workPts, calls, wins, seniorWins, onTime, due, callsToday, secured, securedToday, bestDeal,
+    const metDays = new Set([...perDay.keys()].filter(realMet));
+    const breadEarned = live.length * BREAD.entry + paidCalls * BREAD.call + winBread + metDays.size * BREAD.goalDay + Object.keys(ach).length * BREAD.achievement;
+    const breadSpent = (bread.spent || []).reduce((a, x) => a + (x.price || 0), 0);
+    return { bread: breadEarned - breadSpent, breadEarned, breadSpent, metDays, xp: total, addXp: xp, workPts, calls, wins, seniorWins, onTime, due, callsToday, secured, securedToday, bestDeal,
              entries: live.length, live, today, goal: g, streak, best, todayTiers, ...levelFor(total) };
   }
 
@@ -1186,6 +1456,8 @@ const TPSProfile = (() => {
     pop.classList.toggle("neg", ev.xp < 0);
     const small = document.createElement("small");
     small.textContent = ev.line || [Ranking.groupShort(ev.tier), ev.full ? "Full card" : "", comboShown(ev.combo) >= 2 ? `Combo x${comboShown(ev.combo)}` : ""].filter(Boolean).join("  ");
+    const bd = (after.bread || 0) - (before.bread || 0);
+    if (bd) small.textContent += (small.textContent ? "  " : "") + (bd > 0 ? "+" : "") + bd + " Bread";
     pop.appendChild(small);
     pop.hidden = false; pop.classList.remove("go"); void pop.offsetWidth; pop.classList.add("go");
     setTimeout(() => pop.hidden = true, 1150);
@@ -1205,7 +1477,8 @@ const TPSProfile = (() => {
     const s = stats();
     $("hudLv").textContent = s.level;
     $("hudBar").style.width = (100 * s.into / s.need).toFixed(1) + "%";
-    $("hudXp").textContent = `${s.into} / ${s.need} XP`;
+    $("hudXp").textContent = `${s.into} / ${s.need} XP   🍞 ${s.bread.toLocaleString()}`;
+    hudAvatar();
     $("hudDay").textContent = `${s.today}/${s.goal}`;
     $("hudRing").style.strokeDashoffset = (56.55 * (1 - Math.min(1, s.today / s.goal))).toFixed(2);
     $("hudStreak").textContent = `🔥 ${s.streak}`;
@@ -1293,7 +1566,7 @@ const TPSProfile = (() => {
   });
 
   /* ---------- views + Android back button ---------- */
-  const views = { parser: $("viewParser"), notes: $("viewNotes"), note: $("viewNote"), work: $("viewWork"), stats: $("viewStats") };
+  const views = { parser: $("viewParser"), notes: $("viewNotes"), note: $("viewNote"), work: $("viewWork"), me: $("viewMe"), stats: $("viewStats") };
   let currentNote = null;
   function show(v) {
     for (const k in views) views[k].hidden = k !== v;
@@ -1302,6 +1575,8 @@ const TPSProfile = (() => {
     $("tabNotes").classList.toggle("on", v === "notes" || v === "note");
     $("tabStats").classList.toggle("on", v === "stats");
     $("tabWork").classList.toggle("on", v === "work");
+    $("tabMe").classList.toggle("on", v === "me");
+    if (v === "me") renderMe();
     if (v === "notes") renderNotes();
     if (v === "work") renderWork();
     if (v === "stats") renderStats();
@@ -1310,6 +1585,7 @@ const TPSProfile = (() => {
   $("tabParser").onclick = () => { if (!views.note.hidden) { flushNote(); history.back(); } show("parser"); };
   $("tabStats").onclick = () => { if (!views.note.hidden) { flushNote(); history.back(); } show("stats"); };
   $("hud").onclick = () => $("tabStats").click();
+  $("tabMe").onclick = () => { if (!views.note.hidden) { flushNote(); history.back(); } show("me"); };
   $("tabWork").onclick = () => { if (!views.note.hidden) { flushNote(); history.back(); } workLimit = 60; show("work"); };
   $("tabNotes").onclick = () => { if (!views.note.hidden) history.back(); else show("notes"); };
 
@@ -2018,10 +2294,156 @@ const TPSProfile = (() => {
   window.addEventListener("online", () => syncNow());
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") syncNow(); });
 
+  /* ---------- Me tab: Bread shop, avatars ---------- */
+  const avState = { tab: "duck", preview: null };
+  const breadBalance = () => stats().bread;
+  const equipView = (withPreview) => {
+    const eq = { ...Avatar.DEFAULTS, ...bread.equip };
+    if (withPreview && avState.preview) { const it = Avatar.BY_ID[avState.preview]; eq[it.av + "." + it.slot] = it.id; }
+    return eq;
+  };
+  const owns = id => !!(bread.owned[id] || Avatar.BY_ID[id].price === 0);
+  function applyAccent() {
+    const it = Avatar.BY_ID[bread.equip["extra.accent"]];
+    if (it && it.color && it.id !== "x-amber") document.documentElement.style.setProperty("--amber", it.color);
+    else document.documentElement.style.removeProperty("--amber");
+  }
+  function hudAvatar() {
+    $("hudAv").innerHTML = Avatar.render(bread.main || "duck", equipView(false), bread.look, 'aria-hidden="true"');
+  }
+
+  function renderMe() {
+    const s = stats();
+    $("brBal").textContent = "🍞 " + s.bread.toLocaleString();
+    $("brSub").textContent = `Earned ${s.breadEarned.toLocaleString()}, spent ${s.breadSpent.toLocaleString()}` + (bread.freezes ? `. Streak Freezes: ${bread.freezes}` : "");
+    const pt = $("brEarn"); pt.innerHTML = "";
+    [["Each entry added", "+" + BREAD.entry], ["Each call logged", "+" + BREAD.call], ["Each success", `+${BREAD.success} x amount multiplier`],
+     ["Each day you hit your goal", "+" + BREAD.goalDay], ["Each achievement", "+" + BREAD.achievement]].forEach(([a, b]) => {
+      pt.appendChild(el("span", "", a)); pt.appendChild(el("b", "", b));
+    });
+    document.querySelectorAll("#avSeg button").forEach(b => b.classList.toggle("on", b.dataset.a === avState.tab));
+    const showAv = avState.tab === "extra" ? (bread.main || "duck") : avState.tab;
+    $("avStage").innerHTML = Avatar.render(showAv, equipView(true), bread.look, 'role="img" aria-label="Your avatar"');
+    $("avMain").hidden = avState.tab === "extra";
+    $("avMain").textContent = bread.main === avState.tab ? "This is your avatar" : "Use as my avatar";
+    $("avMain").disabled = bread.main === avState.tab;
+
+    // buy bar for a previewed item
+    const bar = $("buyBar");
+    if (avState.preview) {
+      const it = Avatar.BY_ID[avState.preview], short = it.price - s.bread;
+      bar.hidden = false;
+      $("buyName").textContent = it.name;
+      $("buyPrice").textContent = "🍞 " + it.price.toLocaleString();
+      $("buyBtn").disabled = short > 0;
+      $("buyBtn").textContent = short > 0 ? `Need ${short.toLocaleString()} more` : "Buy";
+    } else bar.hidden = true;
+
+    // free look for the agent
+    $("avLook").hidden = avState.tab !== "agent";
+    if (avState.tab === "agent") {
+      const sw = (box, list, cur, key) => {
+        box.innerHTML = "";
+        list.forEach((v, i) => {
+          const b = el("button", "swatch" + (cur === i ? " on" : "")); b.type = "button"; b.style.background = v;
+          b.setAttribute("aria-label", key + " " + (i + 1));
+          b.onclick = () => { bread.look[key] = i; saveBread(); renderMe(); hudAvatar(); };
+          box.appendChild(b);
+        });
+      };
+      sw($("lookSkin"), Avatar.SKINS, bread.look.skin, "skin");
+      sw($("lookHairColor"), Avatar.HAIR_COLORS, bread.look.hairColor, "hairColor");
+      const hs = $("lookHair"); hs.innerHTML = "";
+      Avatar.HAIR_STYLES.forEach(h => {
+        const b = el("button", "hstyle" + (bread.look.hair === h ? " on" : ""), h[0].toUpperCase() + h.slice(1)); b.type = "button";
+        b.onclick = () => { bread.look.hair = h; saveBread(); renderMe(); hudAvatar(); };
+        hs.appendChild(b);
+      });
+    }
+
+    // shop
+    const shop = $("shop"); shop.innerHTML = "";
+    const items = Avatar.ITEMS.filter(i => i.av === avState.tab);
+    const groups = [];
+    items.forEach(i => { const g = Avatar.SLOT_NAMES[i.slot]; let grp = groups.find(x => x.name === g); if (!grp) groups.push(grp = { name: g, items: [] }); grp.items.push(i); });
+    groups.forEach(g => {
+      const sec = el("div", "panel"); sec.appendChild(el("h3", "", g.name));
+      const grid = el("div", "items");
+      g.items.forEach(it => {
+        const key = it.av + "." + it.slot, eq = equipView(false);
+        const wearing = !it.consumable && eq[key] === it.id;
+        const owned = !it.consumable && owns(it.id);
+        const prevStage = it.stage ? Avatar.ITEMS.find(x => x.slot === "stage" && x.stage === it.stage - 1) : null;
+        const locked = prevStage && !owns(prevStage.id) && !owned;
+        const b = el("button", "item" + (wearing ? " wearing" : owned ? " owned" : "") + (avState.preview === it.id ? " previewing" : "") + (locked ? " locked" : ""));
+        b.type = "button";
+        if (it.color) { const d = el("span", "dot"); d.style.background = it.color; b.appendChild(d); }
+        b.appendChild(el("span", "nm", it.name));
+        b.appendChild(el("span", "pr", it.consumable ? `🍞 ${it.price}  (you have ${bread.freezes})` : wearing ? (it.slot === "stage" ? "Your HQ" : "Using") : owned ? (it.price ? "Owned" : "Free") : locked ? `Needs ${prevStage.name}` : "🍞 " + it.price.toLocaleString()));
+        b.onclick = () => itemTap(it, { wearing, owned, locked });
+        grid.appendChild(b);
+      });
+      sec.appendChild(grid); shop.appendChild(sec);
+    });
+  }
+
+  function itemTap(it, st) {
+    if (st.locked) { toast("Upgrade your HQ in order"); return; }
+    if (it.consumable) { avState.preview = it.id; renderMe(); return; }
+    const key = it.av + "." + it.slot;
+    if (st.owned) {
+      avState.preview = null;
+      if (st.wearing) { if (Avatar.DEFAULTS[key]) bread.equip[key] = Avatar.DEFAULTS[key]; else delete bread.equip[key]; }   // tap again to take it off
+      else bread.equip[key] = it.id;
+      saveBread(); applyAccent(); hudAvatar(); renderMe();
+      return;
+    }
+    avState.preview = avState.preview === it.id ? null : it.id;     // try it on before buying
+    renderMe();
+  }
+
+  function buyPreviewed() {
+    const it = Avatar.BY_ID[avState.preview];
+    if (!it) return;
+    if (it.consumable && bread.freezes >= 3) { toast("You can hold up to 3 Streak Freezes"); return; }
+    if (breadBalance() < it.price) { toast("Not enough Bread yet"); return; }
+    if (!confirm(`Buy ${it.name} for ${it.price.toLocaleString()} Bread?`)) return;
+    bread.spent.push({ t: Date.now(), id: it.id, price: it.price });
+    if (it.consumable) bread.freezes = (bread.freezes || 0) + 1;
+    else { bread.owned[it.id] = true; bread.equip[it.av + "." + it.slot] = it.id; }
+    avState.preview = null;
+    saveBread(); applyAccent(); hudAvatar(); refreshHUD(); renderMe();
+    buzz([20, 40, 20]); toast(it.consumable ? "Streak Freeze added" : `${it.name} unlocked`);
+  }
+  $("buyBtn").onclick = buyPreviewed;
+  $("buyCancel").onclick = () => { avState.preview = null; renderMe(); };
+  document.querySelectorAll("#avSeg button").forEach(b => b.onclick = () => { avState.tab = b.dataset.a; avState.preview = null; renderMe(); });
+  $("avMain").onclick = () => { bread.main = avState.tab; saveBread(); hudAvatar(); renderMe(); toast("Avatar updated"); };
+
+  // Streak Freeze: automatically covers missed days so your streak survives (up to the number you own)
+  function useFreezes() {
+    if (!bread.freezes) return;
+    const met = stats().metDays, frozen = new Set(bread.frozen || []);
+    const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - 1);
+    const gap = [];
+    for (let i = 0; i < 8; i++) {
+      const k = dayKey(d.getTime());
+      if (met.has(k) || frozen.has(k)) {
+        if (gap.length && gap.length <= bread.freezes) {
+          bread.frozen = [...frozen, ...gap]; bread.freezes -= gap.length; saveBread();
+          setTimeout(() => toast(`Streak Freeze used: your streak is safe (${gap.length} day${gap.length === 1 ? "" : "s"} covered)`), 1200);
+        }
+        return;
+      }
+      gap.push(k); d.setDate(d.getDate() - 1);
+    }
+  }
+
   /* ---------- game init ---------- */
   protectStorage(); renderBackup(); renderSync(); syncNow();
   if (!syncAuth) backupReminder();      // cloud sync makes manual backups optional
   if (!Ranking.selfTest().ok) console.warn("Ranking self-test failed", Ranking.selfTest());
+  applyAccent(); useFreezes();
   refreshHUD();
 
   /* ---------- offline ---------- */

@@ -80,7 +80,7 @@
 
   /* the ducks */
   #flock { position: fixed; inset: 0; pointer-events: none; z-index: 4; overflow: hidden; }
-  .duck { position: absolute; width: 34px; height: 16px; color: rgba(255,255,255,.85); filter: drop-shadow(0 2px 3px rgba(0,0,0,.5)); }
+  .duck { position: absolute; width: 34px; height: 16px; color: var(--flock, rgba(255,255,255,.85)); filter: drop-shadow(0 2px 3px rgba(0,0,0,.5)); }
   .duck path { animation: flap .5s ease-in-out infinite alternate; transform-origin: 50% 50%; }
   @keyframes flap { from { transform: scaleY(1); } to { transform: scaleY(.45); } }
   .flying { animation: cross var(--dur, 14s) linear forwards; }
@@ -150,6 +150,8 @@
     } catch {}
   }
   const sleep = ms => new Promise(r => setTimeout(r, ms));
+  // Golden flock (bought with Bread in TPS Notes)
+  { const br = jget("tps-bread-v1", {}); if (br.equip && br.equip["extra.flock"] === "x-goldflock") document.documentElement.style.setProperty("--flock", "#f0b429"); }
 
   /* ---------- ranks (same table as TPS Notes) ---------- */
   const TIERS = [
