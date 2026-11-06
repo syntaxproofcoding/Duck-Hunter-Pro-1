@@ -326,6 +326,9 @@
   .swatch.on { border-color: var(--text); }
   .hstyle { min-height: 40px; padding: 0 12px; font-size: .85rem; font-weight: 600; }
   .hstyle.on { border-color: var(--amber); color: var(--amber); }
+  .swRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: .9rem; padding: 4px 0; }
+  .notes .swRow span { flex: 1; min-width: 0; }
+  .notes .swRow button { width: auto; display: inline-flex; align-items: center; min-height: 40px; padding: 0 12px; flex: none; border-radius: var(--r-sm); }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   @media (prefers-reduced-motion: reduce) { button:active { transform: none; } .sheet { animation: none; } }
 </style>
@@ -542,6 +545,25 @@
       <button id="sheetClip" type="button">Clipboard only</button>
       <button id="sheetCancel" type="button" class="ghost">Cancel</button>
     </div>
+  </div>
+</div>
+
+<!-- Swing: send general info to a saved contact -->
+<div class="scrim" id="swSheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="swTitle">
+    <h2 id="swTitle">Swing to...</h2>
+    <p class="preview" id="swPreview"></p>
+    <ul class="notes" id="swList"></ul>
+    <p class="fine" id="swEmpty" hidden>No swing contacts yet. Add the people you transfer calls to.</p>
+    <button id="swPick" type="button" class="primary" style="width:100%;margin-top:10px" hidden>Add from my phone contacts</button>
+    <div class="row"><button id="swShare" type="button">Other app...</button><button id="swClose" type="button" class="ghost">Done</button></div>
+    <details id="swEdit" style="margin-top:12px">
+      <summary class="fine" style="min-height:36px">Type a contact in, or remove contacts</summary>
+      <label class="lbl" for="swName">Name</label><input id="swName" class="text" autocomplete="off">
+      <label class="lbl" for="swNum">Mobile number</label><input id="swNum" class="text" inputmode="tel" autocomplete="off">
+      <div class="row"><button id="swAdd" type="button" class="primary">Add contact</button></div>
+      <ul class="notes" id="swManage" style="margin-top:10px"></ul>
+    </details>
   </div>
 </div>
 
@@ -1590,6 +1612,7 @@ const Avatar = (() => {
   $("tabNotes").onclick = () => { if (!views.note.hidden) history.back(); else show("notes"); };
 
   window.addEventListener("popstate", () => {
+    if (!$("swSheet").hidden) { $("swSheet").hidden = true; return; }
     if (!$("profSheet").hidden) { $("profSheet").hidden = true; return; }
     if (!$("winSheet").hidden) { $("winSheet").hidden = true; return; }
     if (!$("cbSheet").hidden) { $("cbSheet").hidden = true; return; }
@@ -1663,11 +1686,12 @@ const Avatar = (() => {
     const swing = el("button", "swing", "Swing"); swing.type = "button";
     swing.setAttribute("aria-label", "Copy general info for a transfer");
     swing.onclick = async () => {
-      const info = [`Name: ${e.name || "N/A"}`, `Age: ${e.age || "N/A"}`, `Number: ${e.phone || "N/A"}`, `Address: ${e.address || "N/A"}`, `County: ${e.county || "N/A"}`].join("\n");
+      const info = swingInfo(e);
       const ok = await writeClip(info);
       store.set("lastclip", hashText(info));                  // auto-paste won't grab it back
       swing.textContent = ok ? "Copied!" : "Blocked"; swing.classList.toggle("done", ok);
       setTimeout(() => { swing.textContent = "Swing"; swing.classList.remove("done"); }, 1500);
+      openSwing(e, info);
     };
     const right = el("div", "whr"); right.append(swing, chip);
     head.append(nm, right); li.appendChild(head);
@@ -1746,6 +1770,75 @@ const Avatar = (() => {
     saveWork(); refreshHUD(); renderWork();
     toast(gone.o === "dnc" ? `${e.name || "Entry"} restored from the trash` : `Undid: ${OUTCOMES[gone.o].label}`);
   }
+
+  /* ---------- Swing contacts ---------- */
+  const SW_KEY = "tps-swing-v1";
+  let swContacts = [];
+  try { swContacts = JSON.parse(store.get(SW_KEY) || "[]"); } catch { swContacts = []; }
+  const saveSw = () => store.set(SW_KEY, JSON.stringify(swContacts));
+  const swingInfo = e => [`Name: ${e.name || "N/A"}`, `Age: ${e.age || "N/A"}`, `Number: ${e.phone || "N/A"}`, `Address: ${e.address || "N/A"}`, `County: ${e.county || "N/A"}`].join("\n");
+  let swText = "";
+  function renderSwing() {
+    const list = $("swList"), man = $("swManage");
+    list.innerHTML = ""; man.innerHTML = "";
+    // most used first, so your go-to people sit at the top
+    [...swContacts].sort((a, b) => (b.uses || 0) - (a.uses || 0) || a.name.localeCompare(b.name)).forEach(c => {
+      const li = el("li"), b = el("button"); b.type = "button";
+      b.append(el("span", "t", c.name), el("span", "m", "Text " + prettyPhone(c.num)));
+      b.onclick = () => {
+        c.uses = (c.uses || 0) + 1; c.last = Date.now(); saveSw();
+        $("swSheet").hidden = true; history.back();
+        toast(`Copied. Opening a text to ${c.name}`);
+        setTimeout(() => { location.href = "sms:+1" + c.num + "?body=" + encodeURIComponent(swText); }, 250);
+      };
+      li.appendChild(b); list.appendChild(li);
+      const li2 = el("li", "swRow"), nm = el("span", "", `${c.name}, ${prettyPhone(c.num)}`), del = el("button", "danger", "Remove"); del.type = "button";
+      del.onclick = () => { if (confirm(`Remove ${c.name} from swing contacts?`)) { swContacts = swContacts.filter(x => x !== c); saveSw(); renderSwing(); } };
+      li2.append(nm, del); man.appendChild(li2);
+    });
+    $("swEmpty").hidden = swContacts.length > 0;
+  }
+  function openSwing(e, info) {
+    swText = info;
+    $("swPreview").textContent = info;
+    $("swEdit").open = swContacts.length === 0;
+    renderSwing();
+    $("swSheet").hidden = false;
+    history.pushState({ layer: "swing" }, "");
+  }
+  $("swAdd").onclick = () => {
+    const name = $("swName").value.trim(), num = $("swNum").value.replace(/\D/g, "").slice(-10);
+    if (!name) { toast("Enter a name"); return; }
+    if (num.length !== 10) { toast("Enter a 10-digit mobile number"); return; }
+    if (swContacts.some(c => c.num === num)) { toast("That number is already saved"); return; }
+    swContacts.push({ name, num, uses: 0 }); saveSw();
+    $("swName").value = ""; $("swNum").value = ""; renderSwing(); toast(`${name} added`);
+  };
+  // Pick swing contacts straight from the phone's contacts (Chrome on Android)
+  const canPick = "contacts" in navigator && "ContactsManager" in window;
+  $("swPick").hidden = !canPick;
+  $("swPick").onclick = async () => {
+    let picked;
+    try { picked = await navigator.contacts.select(["name", "tel"], { multiple: true }); } catch { toast("Couldn't open your contacts"); return; }
+    if (!picked || !picked.length) return;
+    let added = 0, skipped = 0;
+    picked.forEach(p => {
+      const name = ((p.name && p.name[0]) || "").trim();
+      const nums = (p.tel || []).map(x => String(x).replace(/\D/g, "")).map(d => d.length === 11 && d[0] === "1" ? d.slice(1) : d).filter(d => d.length === 10);
+      const num = nums.find(d => !swContacts.some(c => c.num === d));
+      if (!num) { skipped++; return; }
+      swContacts.push({ name: name || prettyPhone(num), num, uses: 0 }); added++;
+    });
+    saveSw(); renderSwing(); if (added) $("swEdit").open = false;
+    toast(added ? `${added} contact${added === 1 ? "" : "s"} added` + (skipped ? `, ${skipped} skipped (no US mobile number or already saved)` : "") : "Nothing new to add");
+  };
+  $("swShare").onclick = async () => {
+    if (navigator.share) { try { await navigator.share({ text: swText }); } catch {} }
+    else toast("Already copied. Paste it wherever you need it.");
+  };
+  const closeSw = () => { if (!$("swSheet").hidden) history.back(); };
+  $("swClose").onclick = closeSw;
+  $("swSheet").addEventListener("click", ev => { if (ev.target === $("swSheet")) closeSw(); });
 
   // Saved profile viewer
   function openProfile(e) {
