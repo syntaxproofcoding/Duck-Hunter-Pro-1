@@ -298,6 +298,9 @@
   .ptag { display: inline-block; font-size: .7rem; font-weight: 700; padding: 1px 7px; border-radius: 10px; border: 1px solid var(--line); margin-left: 6px; vertical-align: 1px; color: var(--muted); }
   .ptag.good { color: var(--ok); border-color: var(--ok); }
   .ptag.bad { color: var(--danger); border-color: var(--danger); }
+  /* ---------- incoming caller lookup ---------- */
+  .callNum { font-size: 1.15rem; font-weight: 700; font-variant-numeric: tabular-nums; margin: -4px 0 14px; color: var(--muted); }
+  .altHit { font-size: .8rem; color: var(--muted); margin: 0 0 8px; }
   .ptag.mine { color: var(--amber); border-color: var(--amber); }
   .pphone { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
   .pphone a { color: var(--text); font-weight: 700; text-decoration: none; font-variant-numeric: tabular-nums; }
@@ -545,6 +548,17 @@
 </section>
 
 <div class="dock" id="dock"><button id="copyAll" type="button" class="primary" disabled>Copy to note</button></div>
+
+<!-- Incoming caller lookup (opened by MacroDroid with #call=NUMBER) -->
+<div class="scrim" id="callSheet" hidden>
+  <div class="sheet tall" role="dialog" aria-modal="true" aria-labelledby="callTitle">
+    <h2 id="callTitle"></h2>
+    <p class="callNum" id="callNum"></p>
+    <ul class="cards" id="callList"></ul>
+    <p class="fine" id="callMiss" hidden>This number isn’t on any of your notes or saved profiles.</p>
+    <div class="row"><button id="callClose" type="button">Close</button></div>
+  </div>
+</div>
 
 <!-- Copy-to-note menu -->
 <div class="scrim" id="sheet" hidden>
@@ -1561,6 +1575,7 @@ const Avatar = (() => {
     if (!$("winSheet").hidden) { $("winSheet").hidden = true; return; }
     if (!$("cbSheet").hidden) { $("cbSheet").hidden = true; return; }
     if (!$("sheet").hidden) { $("sheet").hidden = true; return; }
+    if (!$("callSheet").hidden) { $("callSheet").hidden = true; return; }
     if (!views.note.hidden) { flushNote(); currentNote = null; show("notes"); }
   });
 
@@ -1654,7 +1669,55 @@ const Avatar = (() => {
     const empty = { fresh: "No fresh leads. Add entries from the Parser tab.", attempted: "No unanswered calls right now.", callback: "No call backs scheduled.",
                     done: "No successful calls yet.", hidden: "Trash is empty." }[workFilter];
     $("workEmpty").textContent = empty; $("workEmpty").hidden = list.length > 0;
+    if (!$("callSheet").hidden) renderCaller();
   }
+
+  /* ---------- incoming caller lookup ---------- */
+  // MacroDroid opens the app as .../#call=+14705551234 when a call comes in.
+  // The number stays in the hash, so it never gets sent to GitHub's server.
+  let callDigits = "";
+  function callerMatches(d) {
+    const out = [];
+    noteEntries().forEach(e => {
+      if (e.phone.replace(/\D/g, "").slice(-10) === d) { out.push({ e, alt: false }); return; }
+      const p = profiles[e.fp] && profiles[e.fp].p;           // also check other numbers on their saved profile
+      if (p && p.phones && p.phones.some(ph => String(ph.digits || "").slice(-10) === d)) out.push({ e, alt: true });
+    });
+    return out;
+  }
+  function renderCaller() {
+    const ms = callerMatches(callDigits), now = Date.now();
+    $("callTitle").textContent = ms.length ? (ms.length === 1 ? "Incoming call" : `Incoming call, ${ms.length} matches`) : "Not on your list";
+    $("callNum").textContent = "Calling from " + prettyPhone(callDigits);
+    const ul = $("callList"); ul.innerHTML = "";
+    ms.forEach(({ e, alt }) => {
+      const li = workCard(e, cardScore(work[e.fp]?.events || [], e.tier, now), true);
+      if (alt) li.insertBefore(el("p", "altHit", "Calling from a different number on their saved profile"), li.firstChild);
+      ul.appendChild(li);
+    });
+    $("callMiss").hidden = ms.length > 0;
+  }
+  function openCaller(raw) {
+    const d = String(raw || "").replace(/\D/g, "").slice(-10);
+    if (d.length !== 10) return;
+    if (!views.note.hidden) flushNote();
+    callDigits = d; renderCaller();
+    if ($("callSheet").hidden) { $("callSheet").hidden = false; history.pushState({ layer: "call" }, ""); }
+    $("callSheet").querySelector(".sheet").scrollTop = 0;
+    buzz(40);
+  }
+  const closeCaller = () => { if (!$("callSheet").hidden) history.back(); };
+  $("callClose").onclick = closeCaller;
+  $("callSheet").addEventListener("click", ev => { if (ev.target === $("callSheet")) closeCaller(); });
+  function checkCallHash() {
+    const m = location.hash.match(/^#call=(.*)$/);
+    if (!m) return false;
+    history.replaceState(history.state, "", location.pathname + location.search);   // so a reload doesn't reopen it
+    let raw = m[1]; try { raw = decodeURIComponent(raw); } catch {}
+    openCaller(raw);
+    return true;
+  }
+  window.addEventListener("hashchange", checkCallHash);
 
   function workCard(e, sc, showNote) {
     const li = el("li", "wcard t-" + e.tier);
@@ -2562,7 +2625,7 @@ const Avatar = (() => {
   async function checkClipboard() {
     if (!optClip.checked || checking || document.visibilityState !== "visible") return;
     if (!navigator.clipboard || !navigator.clipboard.readText) return;
-    if (!$("sheet").hidden || !views.note.hidden) return;   // don't interrupt the menu or note editing
+    if (!$("sheet").hidden || !views.note.hidden || !$("callSheet").hidden) return;   // don't interrupt the menu, note editing or a caller lookup
     checking = true;
     try {
       const t = ((await navigator.clipboard.readText()) || "").trim();
@@ -2583,6 +2646,7 @@ const Avatar = (() => {
     show("parser");
     if (!copyAll.disabled) openSheet(); else toast("Couldn't find any fields in the shared text");
   } else run();
+  checkCallHash();
 
   /* ---------- auto-paste: read the clipboard whenever the app comes to the front ---------- */
   if (!shared) checkClipboard();

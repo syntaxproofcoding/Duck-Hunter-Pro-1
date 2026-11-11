@@ -9,3 +9,5 @@ Parser, notes, call tracking and progress for TruePeopleSearch profiles, built f
 
 Your data lives on your phone. If you sign in to Cloud sync (Stats tab), it is also saved to your private Supabase project.
 Duck View sends entry addresses to Mapbox to place them on the map.
+
+Caller lookup: opening the app as `https://syntaxproofcoding.github.io/Duck-Hunter-Pro-1/#call=NUMBER` shows that caller's entry (MacroDroid does this on incoming calls). The number stays on the phone; it isn't sent to GitHub.
