@@ -203,9 +203,21 @@
   .ach { border: 1.5px solid var(--line); border-radius: var(--r-sm); padding: 10px; }
   .ach .n { font-weight: 700; font-size: .9rem; }
   .ach .d { font-size: .78rem; color: var(--muted); margin-top: 2px; }
-  .ach.on { border-color: var(--amber); }
-  .ach.on .n::before { content: "★ "; color: var(--amber); }
-  .ach:not(.on) { opacity: .55; }
+  .ach { --tcol: #c07a3c; }
+  .ach.t-silver { --tcol: #9fb0c4; } .ach.t-gold { --tcol: #f0b429; } .ach.t-legend { --tcol: #c084fc; }
+  .ach.on { border-color: var(--tcol); box-shadow: inset 0 0 0 1px var(--tcol); }
+  .ach.on .n::before { content: "★ "; color: var(--tcol); }
+  .ach:not(.on) .n, .ach:not(.on) .d { opacity: .6; }
+  .ach .ft { display: flex; justify-content: space-between; gap: 6px; margin-top: 6px; font-size: .7rem; font-weight: 700; }
+  .ach .ft { flex-wrap: wrap; } .ach .rw { color: var(--tcol); white-space: nowrap; } .ach .pc { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; margin-left: auto; }
+  .ach .bar { height: 5px; margin-top: 5px; } .ach .bar i { background: var(--tcol); }
+  .achGrp { border-top: 1px solid var(--line); }
+  .achGrp summary { display: flex; justify-content: space-between; align-items: center; min-height: 46px; cursor: pointer; font-weight: 700; list-style: none; }
+  .achGrp summary::-webkit-details-marker { display: none; }
+  .achGrp summary::before { content: "▸"; color: var(--muted); margin-right: 8px; }
+  .achGrp[open] summary::before { content: "▾"; }
+  .achGrp summary span { flex: 1; } .achGrp summary b { color: var(--muted); font-size: .85rem; font-variant-numeric: tabular-nums; }
+  .achGrp .achs { padding-bottom: 12px; }
   .fine { font-size: .8rem; color: var(--muted); margin: 4px 2px 0; }
 
   #xpPop {
@@ -298,9 +310,6 @@
   .ptag { display: inline-block; font-size: .7rem; font-weight: 700; padding: 1px 7px; border-radius: 10px; border: 1px solid var(--line); margin-left: 6px; vertical-align: 1px; color: var(--muted); }
   .ptag.good { color: var(--ok); border-color: var(--ok); }
   .ptag.bad { color: var(--danger); border-color: var(--danger); }
-  /* ---------- incoming caller lookup ---------- */
-  .callNum { font-size: 1.15rem; font-weight: 700; font-variant-numeric: tabular-nums; margin: -4px 0 14px; color: var(--muted); }
-  .altHit { font-size: .8rem; color: var(--muted); margin: 0 0 8px; }
   .ptag.mine { color: var(--amber); border-color: var(--amber); }
   .pphone { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
   .pphone a { color: var(--text); font-weight: 700; text-decoration: none; font-variant-numeric: tabular-nums; }
@@ -509,7 +518,7 @@
       <div><div class="big" id="stSec">$0</div><div class="sub" id="stBestDeal">secured total</div></div></div>
     </div>
     <div class="panel"><h3>Ranks in your notes</h3><div id="stTiers"></div></div>
-    <div class="panel"><h3>Achievements</h3><div class="achs" id="stAchs"></div></div>
+    <div class="panel"><h3 style="display:flex;justify-content:space-between">Achievements <span id="achCount"></span></h3><div id="stAchs"></div></div>
     <div class="panel" id="syncPanel">
       <h3>Cloud sync</h3>
       <div id="syncSetup" hidden>
@@ -548,17 +557,6 @@
 </section>
 
 <div class="dock" id="dock"><button id="copyAll" type="button" class="primary" disabled>Copy to note</button></div>
-
-<!-- Incoming caller lookup (opened by MacroDroid with #call=NUMBER) -->
-<div class="scrim" id="callSheet" hidden>
-  <div class="sheet tall" role="dialog" aria-modal="true" aria-labelledby="callTitle">
-    <h2 id="callTitle"></h2>
-    <p class="callNum" id="callNum"></p>
-    <ul class="cards" id="callList"></ul>
-    <p class="fine" id="callMiss" hidden>This number isn’t on any of your notes or saved profiles.</p>
-    <div class="row"><button id="callClose" type="button">Close</button></div>
-  </div>
-</div>
 
 <!-- Copy-to-note menu -->
 <div class="scrim" id="sheet" hidden>
@@ -1346,6 +1344,11 @@ const Avatar = (() => {
         best = Math.max(best, run); prev = ts;
       });
     const todayTiers = new Set(live.filter(e => dayKey(e.t) === dayKey(Date.now())).map(e => e.tier));
+    const tierCounts = {}, tierWins = {}, outcomes = {}, callDays = new Map(), winDays = new Map(), moneyDays = new Map();
+    let maxCombo = 0, night = false, early = false, weekend = false, persistWin = false, firstTryWin = false, trashed = 0;
+    const when = ts => { const dt = new Date(ts), h = dt.getHours(); if (h >= 22 || h < 4) night = true; if (h >= 4 && h < 7) early = true; if (dt.getDay() === 0 || dt.getDay() === 6) weekend = true; };
+    live.forEach(e => { tierCounts[e.tier] = (tierCounts[e.tier] || 0) + 1; maxCombo = Math.max(maxCombo, comboShown(e.combo)); when(e.t); });
+    const maxEntriesDay = Math.max(0, ...perDay.values());
     let paidCalls = 0, winBread = 0;
     let workPts = 0, calls = 0, wins = 0, seniorWins = 0, onTime = 0, due = 0, callsToday = 0, secured = 0, securedToday = 0, bestDeal = 0;
     const now = Date.now(), tk = dayKey(now);
@@ -1358,14 +1361,29 @@ const Avatar = (() => {
       if (sc.won) { wins++; if (e.tier === "SENIOR") seniorWins++; }
       if (sc.status === "callback" && sc.cb <= now) due++;
       callsToday += w.events.filter(x => x.o !== "dnc" && dayKey(x.t) === tk).length;
+      w.events.forEach(x => {
+        outcomes[x.o] = (outcomes[x.o] || 0) + 1;
+        if (x.o !== "dnc") { const k = dayKey(x.t); callDays.set(k, (callDays.get(k) || 0) + 1); when(x.t); }
+      });
+      if (sc.status === "hidden") trashed++;
       const win = w.events.find(x => x.o === "success");
+      if (win && sc.won) {
+        tierWins[e.tier] = (tierWins[e.tier] || 0) + 1;
+        const k = dayKey(win.t); winDays.set(k, (winDays.get(k) || 0) + 1);
+        if (win.amt) moneyDays.set(k, (moneyDays.get(k) || 0) + win.amt);
+        const before = w.events.slice(0, w.events.indexOf(win)).filter(x => x.o !== "dnc").length;
+        if (before >= 5) persistWin = true;
+        if (before === 0) firstTryWin = true;
+      }
       if (win && sc.won && win.amt) { secured += win.amt; bestDeal = Math.max(bestDeal, win.amt); if (dayKey(win.t) === tk) securedToday += win.amt; }
     }
     const total = Math.max(0, xp + workPts);
     const metDays = new Set([...perDay.keys()].filter(realMet));
-    const breadEarned = live.length * BREAD.entry + paidCalls * BREAD.call + winBread + metDays.size * BREAD.goalDay + Object.keys(ach).length * BREAD.achievement;
+    const breadEarned = live.length * BREAD.entry + paidCalls * BREAD.call + winBread + metDays.size * BREAD.goalDay + Object.keys(ach).reduce((a, id) => a + achReward(id), 0);
     const breadSpent = (bread.spent || []).reduce((a, x) => a + (x.price || 0), 0);
-    return { bread: breadEarned - breadSpent, breadEarned, breadSpent, metDays, xp: total, addXp: xp, workPts, calls, wins, seniorWins, onTime, due, callsToday, secured, securedToday, bestDeal,
+    return { tierCounts, tierWins, outcomes, maxCombo, night, early, weekend, persistWin, firstTryWin, trashed, maxEntriesDay,
+             maxCallsDay: Math.max(0, ...callDays.values()), maxWinsDay: Math.max(0, ...winDays.values()), maxSecuredDay: Math.max(0, ...moneyDays.values()),
+             bread: breadEarned - breadSpent, breadEarned, breadSpent, metDays, xp: total, addXp: xp, workPts, calls, wins, seniorWins, onTime, due, callsToday, secured, securedToday, bestDeal,
              entries: live.length, live, today, goal: g, streak, best, todayTiers, ...levelFor(total) };
   }
 
@@ -1387,29 +1405,127 @@ const Avatar = (() => {
     return { xp, full, combo, fp };
   }
 
+  // ---------- Achievements: tier sets the Bread reward; val(s) is progress toward goal ----------
+  var ACH_R = {};
+  const TIER_R = { bronze: 25, silver: 50, gold: 100, legend: 250 };
+  const ACH_CATS = ["Leads", "Ranks", "Calls", "Wins", "Money", "Consistency", "Progress", "Collection", "Tools", "Just for fun"];
+  const A = (id, n, d, cat, tier, goal, val) => ({ id, n, d, cat, tier, goal, val, ok: s => val(s) >= goal });
+  const tc = t => s => s.tierCounts[t] || 0, tw = t => s => s.tierWins[t] || 0;
   const ACHIEVEMENTS = [
-    { id: "first",    n: "First Entry",   d: "Add your first entry",            ok: s => s.entries >= 1 },
-    { id: "ten",      n: "Warmed Up",     d: "10 entries in your notes",        ok: s => s.entries >= 10 },
-    { id: "hundred",  n: "Century",       d: "100 entries in your notes",       ok: s => s.entries >= 100 },
-    { id: "fivehund", n: "Archivist",     d: "500 entries in your notes",       ok: s => s.entries >= 500 },
-    { id: "bigfish",  n: "Big Fish",      d: "Secure $10,000+ in one deal",     ok: s => s.bestDeal >= 10000 },
-    { id: "whale",    n: "Whale",         d: "Secure $50,000+ in one deal",     ok: s => s.bestDeal >= 50000 },
-    { id: "combo5",   n: "On a Roll",     d: "Reach a x5 combo",                ok: (s, e) => !!e && comboShown(e.combo) >= 5 },
-    { id: "roster",   n: "Full Roster",   d: "All 5 ranks in one day",          ok: s => ["UNDERGRAD","FRESHMAN","SOPHOMORE","JUNIOR","SENIOR"].every(t => s.todayTiers.has(t)) },
-    { id: "goal",     n: "Goal Getter",   d: "Hit your daily goal",             ok: s => s.today >= s.goal },
-    { id: "streak3",  n: "Heating Up",    d: "3-day goal streak",               ok: s => s.streak >= 3 },
-    { id: "streak7",  n: "On Fire",       d: "7-day goal streak",               ok: s => s.streak >= 7 },
-    { id: "lvl5",     n: "Level 5",       d: "Reach level 5",                   ok: s => s.level >= 5 },
-    { id: "lvl10",    n: "Level 10",      d: "Reach level 10",                  ok: s => s.level >= 10 },
-    { id: "win1",     n: "First Win",     d: "Your first successful call",      ok: s => s.wins >= 1 },
-    { id: "win10",    n: "Closer",        d: "10 successful calls",             ok: s => s.wins >= 10 },
-    { id: "seniorwin",n: "Senior Closer", d: "A success with a Senior",         ok: s => s.seniorWins >= 1 },
-    { id: "dial50",   n: "Dialer",        d: "Log 50 calls",                    ok: s => s.calls >= 50 },
-    { id: "ontime5",  n: "Right On Time", d: "5 call backs made on time",       ok: s => s.onTime >= 5 },
+    // Leads
+    A("first", "First Entry", "Add your first entry", "Leads", "bronze", 1, s => s.entries),
+    A("ten", "Warmed Up", "10 entries in your notes", "Leads", "bronze", 10, s => s.entries),
+    A("lead25", "Quarter Stack", "25 entries", "Leads", "bronze", 25, s => s.entries),
+    A("lead50", "Half Century", "50 entries", "Leads", "silver", 50, s => s.entries),
+    A("hundred", "Century", "100 entries", "Leads", "silver", 100, s => s.entries),
+    A("lead250", "Big Board", "250 entries", "Leads", "gold", 250, s => s.entries),
+    A("fivehund", "Archivist", "500 entries", "Leads", "gold", 500, s => s.entries),
+    A("lead1k", "Rolodex Royalty", "1,000 entries", "Leads", "legend", 1000, s => s.entries),
+    A("lead2500", "Lead Legend", "2,500 entries", "Leads", "legend", 2500, s => s.entries),
+    // Ranks
+    A("roster", "Full Roster", "All 5 ranks added in one day", "Ranks", "silver", 5, s => s.todayTiers.size >= 5 ? 5 : ["UNDERGRAD","FRESHMAN","SOPHOMORE","JUNIOR","SENIOR"].filter(t => s.todayTiers.has(t)).length),
+    A("rk-ug", "Campus Tour", "10 Undergrad entries", "Ranks", "bronze", 10, tc("UNDERGRAD")),
+    A("rk-fr", "Fresh Faces", "25 Freshman entries", "Ranks", "bronze", 25, tc("FRESHMAN")),
+    A("rk-so", "Second Year", "25 Sophomore entries", "Ranks", "bronze", 25, tc("SOPHOMORE")),
+    A("rk-jr", "Upperclassman", "25 Junior entries", "Ranks", "silver", 25, tc("JUNIOR")),
+    A("rk-sr", "Senior Class", "25 Senior entries", "Ranks", "silver", 25, tc("SENIOR")),
+    A("rk-sr100", "Valedictorian", "100 Senior entries", "Ranks", "gold", 100, tc("SENIOR")),
+    // Calls
+    A("call1", "Dial Tone", "Log your first call", "Calls", "bronze", 1, s => s.calls),
+    A("call10", "Warm Line", "Log 10 calls", "Calls", "bronze", 10, s => s.calls),
+    A("dial50", "Dialer", "Log 50 calls", "Calls", "silver", 50, s => s.calls),
+    A("call100", "Hotline", "Log 100 calls", "Calls", "silver", 100, s => s.calls),
+    A("call250", "Switchboard", "Log 250 calls", "Calls", "gold", 250, s => s.calls),
+    A("call500", "Call Center", "Log 500 calls", "Calls", "gold", 500, s => s.calls),
+    A("call1k", "Thousand Dials", "Log 1,000 calls", "Calls", "legend", 1000, s => s.calls),
+    A("cday25", "Busy Signal", "25 calls in one day", "Calls", "silver", 25, s => s.maxCallsDay),
+    A("cday50", "Phone Marathon", "50 calls in one day", "Calls", "gold", 50, s => s.maxCallsDay),
+    A("cday100", "Iron Ear", "100 calls in one day", "Calls", "legend", 100, s => s.maxCallsDay),
+    A("na50", "Ring Ring", "50 No answers logged", "Calls", "bronze", 50, s => s.outcomes.no_answer || 0),
+    A("vm25", "Beep Collector", "25 Straight to VM logged", "Calls", "bronze", 25, s => s.outcomes.voicemail || 0),
+    A("cb10", "Calendar Keeper", "Schedule 10 call backs", "Calls", "silver", 10, s => (s.outcomes.cb_voicemail || 0) + (s.outcomes.cb_answered || 0)),
+    A("ontime5", "Right On Time", "5 call backs made on time", "Calls", "silver", 5, s => s.onTime),
+    A("ontime25", "Clockwork", "25 call backs made on time", "Calls", "gold", 25, s => s.onTime),
+    // Wins
+    A("win1", "First Win", "Your first successful call", "Wins", "silver", 1, s => s.wins),
+    A("win5", "Five Star", "5 successful calls", "Wins", "silver", 5, s => s.wins),
+    A("win10", "Closer", "10 successful calls", "Wins", "gold", 10, s => s.wins),
+    A("win25", "Deal Maker", "25 successful calls", "Wins", "gold", 25, s => s.wins),
+    A("win50", "Rainmaker", "50 successful calls", "Wins", "legend", 50, s => s.wins),
+    A("win100", "Hall of Fame", "100 successful calls", "Wins", "legend", 100, s => s.wins),
+    A("seniorwin", "Senior Closer", "A success with a Senior", "Wins", "silver", 1, s => s.seniorWins),
+    A("srwin10", "Senior Specialist", "10 successes with Seniors", "Wins", "gold", 10, s => s.seniorWins),
+    A("ugwin", "Rookie Card", "A success with an Undergrad", "Wins", "bronze", 1, tw("UNDERGRAD")),
+    A("slam", "Grand Slam", "A success in all 5 ranks", "Wins", "gold", 5, s => ["UNDERGRAD","FRESHMAN","SOPHOMORE","JUNIOR","SENIOR"].filter(t => s.tierWins[t]).length),
+    A("winday3", "Hat Trick", "3 successes in one day", "Wins", "gold", 3, s => s.maxWinsDay),
+    // Money
+    A("deal1k", "Stack Starter", "Secure $1,000+ in one deal", "Money", "bronze", 1000, s => s.bestDeal),
+    A("bigfish", "Big Fish", "Secure $10,000+ in one deal", "Money", "gold", 10000, s => s.bestDeal),
+    A("whale", "Whale", "Secure $50,000+ in one deal", "Money", "legend", 50000, s => s.bestDeal),
+    A("tot1k", "First Grand", "$1,000 secured in total", "Money", "bronze", 1000, s => s.secured),
+    A("tot10k", "Five Figures", "$10,000 secured in total", "Money", "silver", 10000, s => s.secured),
+    A("tot50k", "Money Moves", "$50,000 secured in total", "Money", "gold", 50000, s => s.secured),
+    A("tot100k", "Six Figures", "$100,000 secured in total", "Money", "gold", 100000, s => s.secured),
+    A("tot250k", "Quarter Mil", "$250,000 secured in total", "Money", "legend", 250000, s => s.secured),
+    A("tot1m", "Millionaire Maker", "$1,000,000 secured in total", "Money", "legend", 1000000, s => s.secured),
+    A("payday", "Payday", "$5,000 secured in one day", "Money", "silver", 5000, s => s.maxSecuredDay),
+    A("jackpot", "Jackpot Day", "$25,000 secured in one day", "Money", "gold", 25000, s => s.maxSecuredDay),
+    // Consistency
+    A("goal", "Goal Getter", "Hit your daily goal", "Consistency", "bronze", 1, s => s.metDays.size + (s.today >= s.goal ? 1 : 0)),
+    A("goal10", "Consistent", "Hit your goal on 10 days", "Consistency", "silver", 10, s => s.metDays.size),
+    A("goal50", "Reliable", "Hit your goal on 50 days", "Consistency", "gold", 50, s => s.metDays.size),
+    A("double", "Double Up", "Twice your daily goal in one day", "Consistency", "silver", 2, s => s.goal ? s.maxEntriesDay / s.goal : 0),
+    A("eday100", "Century Day", "100 entries in one day", "Consistency", "gold", 100, s => s.maxEntriesDay),
+    A("streak3", "Heating Up", "3-day goal streak", "Consistency", "bronze", 3, s => Math.max(s.streak, s.best)),
+    A("streak7", "On Fire", "7-day goal streak", "Consistency", "silver", 7, s => Math.max(s.streak, s.best)),
+    A("streak14", "Fortnight", "14-day goal streak", "Consistency", "gold", 14, s => Math.max(s.streak, s.best)),
+    A("streak30", "Iron Duck", "30-day goal streak", "Consistency", "legend", 30, s => Math.max(s.streak, s.best)),
+    A("combo5", "On a Roll", "Reach a x5 combo", "Consistency", "silver", 5, s => s.maxCombo),
+    A("combo10", "Unstoppable", "Reach a x10 combo", "Consistency", "gold", 10, s => s.maxCombo),
+    // Progress
+    A("lvl5", "Level 5", "Reach level 5", "Progress", "bronze", 5, s => s.level),
+    A("lvl10", "Level 10", "Reach level 10", "Progress", "silver", 10, s => s.level),
+    A("lvl20", "Veteran", "Reach level 20", "Progress", "gold", 20, s => s.level),
+    A("lvl30", "Elite", "Reach level 30", "Progress", "gold", 30, s => s.level),
+    A("lvl50", "Legendary", "Reach level 50", "Progress", "legend", 50, s => s.level),
+    A("ach25", "Trophy Case", "Unlock 25 achievements", "Progress", "silver", 25, () => Object.keys(ach).length),
+    A("ach50", "Trophy Room", "Unlock 50 achievements", "Progress", "gold", 50, () => Object.keys(ach).length),
+    // Collection
+    A("bread500", "Bakery", "Earn 500 Bread", "Collection", "bronze", 500, s => s.breadEarned),
+    A("bread2500", "Bread Baron", "Earn 2,500 Bread", "Collection", "silver", 2500, s => s.breadEarned),
+    A("bread10k", "Bread Tycoon", "Earn 10,000 Bread", "Collection", "gold", 10000, s => s.breadEarned),
+    A("shop1", "Shopper", "Buy your first item", "Collection", "bronze", 1, () => Object.keys(bread.owned || {}).length),
+    A("shop10", "Collector", "Own 10 items", "Collection", "silver", 10, () => Object.keys(bread.owned || {}).length),
+    A("shop25", "Hoarder", "Own 25 items", "Collection", "gold", 25, () => Object.keys(bread.owned || {}).length),
+    A("hq3", "Corner Office", "Upgrade your HQ to the Corner Office", "Collection", "silver", 3, () => hqStage()),
+    A("hq6", "Top of the Tower", "Build Duck Tower", "Collection", "legend", 6, () => hqStage()),
+    A("golden", "Golden Duck", "Own the Golden Duck", "Collection", "gold", 1, () => bread.owned && bread.owned["d-golden"] ? 1 : 0),
+    // Tools
+    A("prof10", "Profile Pro", "10 saved TruePeopleSearch profiles", "Tools", "bronze", 10, () => Object.keys(profiles).length),
+    A("prof100", "Dossier Desk", "100 saved profiles", "Tools", "silver", 100, () => Object.keys(profiles).length),
+    A("swing1", "First Swing", "Swing a lead to a contact", "Tools", "bronze", 1, () => swUses()),
+    A("swing25", "Smooth Swing", "Swing 25 leads", "Tools", "silver", 25, () => swUses()),
+    A("notes5", "Organizer", "Have 5 notes", "Tools", "bronze", 5, () => notes.length),
+    A("trash1", "Spring Cleaning", "Move someone to the trash", "Tools", "bronze", 1, s => s.trashed),
+    // Just for fun
+    A("night", "Night Owl", "Work between 10 PM and 4 AM", "Just for fun", "bronze", 1, s => s.night ? 1 : 0),
+    A("early", "Early Bird", "Work before 7 AM", "Just for fun", "bronze", 1, s => s.early ? 1 : 0),
+    A("weekend", "Weekend Warrior", "Work on a Saturday or Sunday", "Just for fun", "bronze", 1, s => s.weekend ? 1 : 0),
+    A("persist", "Never Give Up", "Win someone after 5+ calls", "Just for fun", "gold", 1, s => s.persistWin ? 1 : 0),
+    A("firsttry", "First Try", "Win on the very first call", "Just for fun", "silver", 1, s => s.firstTryWin ? 1 : 0),
   ];
+  ACHIEVEMENTS.forEach(a => ACH_R[a.id] = TIER_R[a.tier]);
+  function hqStage() { const it = Avatar.BY_ID[(bread.equip || {})["hq.stage"]]; let st = it ? it.stage : 0; Object.keys(bread.owned || {}).forEach(id => { const x = Avatar.BY_ID[id]; if (x && x.slot === "stage") st = Math.max(st, x.stage); }); return st; }
+  function swUses() { try { return (typeof swContacts !== "undefined" ? swContacts : []).reduce((a, c) => a + (c.uses || 0), 0); } catch { return 0; } }
+  const achReward = id => (ACH_R && ACH_R[id]) || BREAD.achievement;
   function checkAchievements(s, ev) {
-    const fresh = ACHIEVEMENTS.filter(a => !ach[a.id] && a.ok(s, ev));
-    fresh.forEach(a => ach[a.id] = Date.now());
+    const fresh = [];
+    for (let round = 0; round < 4; round++) {
+      const add = ACHIEVEMENTS.filter(a => !ach[a.id] && a.ok(s, ev));
+      if (!add.length) break;
+      add.forEach(a => { ach[a.id] = Date.now(); fresh.push(a); });
+      s = stats();
+    }
     if (fresh.length) saveAch();
     return fresh;
   }
@@ -1449,7 +1565,8 @@ const Avatar = (() => {
       delay += 2800;
     }
     if (before.today < before.goal && after.today >= after.goal) { setTimeout(() => toast(`Daily goal hit: ${after.goal} entries`), delay); delay += 2200; }
-    unlocked.forEach(a => { setTimeout(() => { toast(`★ Achievement: ${a.n}`); buzz(30); }, delay); delay += 2200; });
+    if (unlocked.length > 2) setTimeout(() => { toast(`★ ${unlocked.length} achievements unlocked! +${unlocked.reduce((x, a) => x + achReward(a.id), 0)} Bread`); buzz([30, 40, 30]); }, delay);
+    else unlocked.forEach(a => { setTimeout(() => { toast(`★ Achievement: ${a.n}  +${achReward(a.id)} Bread`); buzz(30); }, delay); delay += 2200; });
   }
   $("lvlUp").onclick = () => $("lvlUp").hidden = true;
 
@@ -1533,13 +1650,35 @@ const Avatar = (() => {
       bar.appendChild(fill); row.append(chip, n, bar); box.appendChild(row);
     });
     const achs = $("stAchs"); achs.innerHTML = "";
-    ACHIEVEMENTS.forEach(a => {
-      const d = document.createElement("div"); d.className = "ach" + (ach[a.id] ? " on" : "");
-      const n = document.createElement("div"); n.className = "n"; n.textContent = a.n;
-      const dd = document.createElement("div"); dd.className = "d"; dd.textContent = a.d;
-      d.append(n, dd); achs.appendChild(d);
+    const got = ACHIEVEMENTS.filter(a => ach[a.id]).length;
+    $("achCount").textContent = `${got} / ${ACHIEVEMENTS.length}`;
+    ACH_CATS.forEach(cat => {
+      const list = ACHIEVEMENTS.filter(a => a.cat === cat); if (!list.length) return;
+      const done = list.filter(a => ach[a.id]).length;
+      const det = document.createElement("details"); det.className = "achGrp"; det.open = openCats.has(cat);
+      det.addEventListener("toggle", () => det.open ? openCats.add(cat) : openCats.delete(cat));
+      const sum = document.createElement("summary"); sum.innerHTML = `<span></span><b>${done} / ${list.length}</b>`; sum.firstChild.textContent = cat;
+      const grid = document.createElement("div"); grid.className = "achs";
+      list.forEach(a => {
+        const on = !!ach[a.id], cur = Math.min(a.goal, Math.max(0, a.val(s) || 0));
+        const d = document.createElement("div"); d.className = "ach t-" + a.tier + (on ? " on" : "");
+        const n = document.createElement("div"); n.className = "n"; n.textContent = a.n;
+        const dd = document.createElement("div"); dd.className = "d"; dd.textContent = a.d;
+        const ft = document.createElement("div"); ft.className = "ft";
+        const rw = document.createElement("span"); rw.className = "rw"; rw.textContent = a.tier[0].toUpperCase() + a.tier.slice(1) + "  🍞 " + achReward(a.id);
+        ft.appendChild(rw);
+        d.append(n, dd, ft);
+        if (!on && a.goal > 1) {
+          const bar = document.createElement("div"); bar.className = "bar"; const i = document.createElement("i"); i.style.width = (100 * cur / a.goal) + "%"; bar.appendChild(i);
+          const pc = document.createElement("span"); pc.className = "pc"; pc.textContent = `${Math.floor(cur).toLocaleString()} / ${a.goal.toLocaleString()}`;
+          ft.appendChild(pc); d.appendChild(bar);
+        }
+        grid.appendChild(d);
+      });
+      det.append(sum, grid); achs.appendChild(det);
     });
   }
+  const openCats = new Set();
   $("goalIn").addEventListener("change", () => {
     const v = Math.min(999, Math.max(1, parseInt($("goalIn").value, 10) || 25));
     store.set("goal", String(v)); $("goalIn").value = v; refreshHUD();
@@ -1575,7 +1714,6 @@ const Avatar = (() => {
     if (!$("winSheet").hidden) { $("winSheet").hidden = true; return; }
     if (!$("cbSheet").hidden) { $("cbSheet").hidden = true; return; }
     if (!$("sheet").hidden) { $("sheet").hidden = true; return; }
-    if (!$("callSheet").hidden) { $("callSheet").hidden = true; return; }
     if (!views.note.hidden) { flushNote(); currentNote = null; show("notes"); }
   });
 
@@ -1669,55 +1807,7 @@ const Avatar = (() => {
     const empty = { fresh: "No fresh leads. Add entries from the Parser tab.", attempted: "No unanswered calls right now.", callback: "No call backs scheduled.",
                     done: "No successful calls yet.", hidden: "Trash is empty." }[workFilter];
     $("workEmpty").textContent = empty; $("workEmpty").hidden = list.length > 0;
-    if (!$("callSheet").hidden) renderCaller();
   }
-
-  /* ---------- incoming caller lookup ---------- */
-  // MacroDroid opens the app as .../#call=+14705551234 when a call comes in.
-  // The number stays in the hash, so it never gets sent to GitHub's server.
-  let callDigits = "";
-  function callerMatches(d) {
-    const out = [];
-    noteEntries().forEach(e => {
-      if (e.phone.replace(/\D/g, "").slice(-10) === d) { out.push({ e, alt: false }); return; }
-      const p = profiles[e.fp] && profiles[e.fp].p;           // also check other numbers on their saved profile
-      if (p && p.phones && p.phones.some(ph => String(ph.digits || "").slice(-10) === d)) out.push({ e, alt: true });
-    });
-    return out;
-  }
-  function renderCaller() {
-    const ms = callerMatches(callDigits), now = Date.now();
-    $("callTitle").textContent = ms.length ? (ms.length === 1 ? "Incoming call" : `Incoming call, ${ms.length} matches`) : "Not on your list";
-    $("callNum").textContent = "Calling from " + prettyPhone(callDigits);
-    const ul = $("callList"); ul.innerHTML = "";
-    ms.forEach(({ e, alt }) => {
-      const li = workCard(e, cardScore(work[e.fp]?.events || [], e.tier, now), true);
-      if (alt) li.insertBefore(el("p", "altHit", "Calling from a different number on their saved profile"), li.firstChild);
-      ul.appendChild(li);
-    });
-    $("callMiss").hidden = ms.length > 0;
-  }
-  function openCaller(raw) {
-    const d = String(raw || "").replace(/\D/g, "").slice(-10);
-    if (d.length !== 10) return;
-    if (!views.note.hidden) flushNote();
-    callDigits = d; renderCaller();
-    if ($("callSheet").hidden) { $("callSheet").hidden = false; history.pushState({ layer: "call" }, ""); }
-    $("callSheet").querySelector(".sheet").scrollTop = 0;
-    buzz(40);
-  }
-  const closeCaller = () => { if (!$("callSheet").hidden) history.back(); };
-  $("callClose").onclick = closeCaller;
-  $("callSheet").addEventListener("click", ev => { if (ev.target === $("callSheet")) closeCaller(); });
-  function checkCallHash() {
-    const m = location.hash.match(/^#call=(.*)$/);
-    if (!m) return false;
-    history.replaceState(history.state, "", location.pathname + location.search);   // so a reload doesn't reopen it
-    let raw = m[1]; try { raw = decodeURIComponent(raw); } catch {}
-    openCaller(raw);
-    return true;
-  }
-  window.addEventListener("hashchange", checkCallHash);
 
   function workCard(e, sc, showNote) {
     const li = el("li", "wcard t-" + e.tier);
@@ -2453,7 +2543,7 @@ const Avatar = (() => {
     $("brSub").textContent = `Earned ${s.breadEarned.toLocaleString()}, spent ${s.breadSpent.toLocaleString()}` + (bread.freezes ? `. Streak Freezes: ${bread.freezes}` : "");
     const pt = $("brEarn"); pt.innerHTML = "";
     [["Each entry added", "+" + BREAD.entry], ["Each call logged", "+" + BREAD.call], ["Each success", `+${BREAD.success} x amount multiplier`],
-     ["Each day you hit your goal", "+" + BREAD.goalDay], ["Each achievement", "+" + BREAD.achievement]].forEach(([a, b]) => {
+     ["Each day you hit your goal", "+" + BREAD.goalDay], ["Each achievement", "+25 to +250 by tier"]].forEach(([a, b]) => {
       pt.appendChild(el("span", "", a)); pt.appendChild(el("b", "", b));
     });
     document.querySelectorAll("#avSeg button").forEach(b => b.classList.toggle("on", b.dataset.a === avState.tab));
@@ -2596,6 +2686,7 @@ const Avatar = (() => {
 
   /* ---------- game init ---------- */
   protectStorage(); renderBackup(); renderSync(); syncNow();
+  { const fresh = checkAchievements(stats()); if (fresh.length) { refreshHUD(); setTimeout(() => toast(fresh.length === 1 ? `★ Achievement: ${fresh[0].n}  +${achReward(fresh[0].id)} Bread` : `★ ${fresh.length} achievements unlocked! +${fresh.reduce((x, a) => x + achReward(a.id), 0)} Bread`), 900); } }
   if (!syncAuth) backupReminder();      // cloud sync makes manual backups optional
   if (!Ranking.selfTest().ok) console.warn("Ranking self-test failed", Ranking.selfTest());
   applyAccent(); useFreezes();
@@ -2625,7 +2716,7 @@ const Avatar = (() => {
   async function checkClipboard() {
     if (!optClip.checked || checking || document.visibilityState !== "visible") return;
     if (!navigator.clipboard || !navigator.clipboard.readText) return;
-    if (!$("sheet").hidden || !views.note.hidden || !$("callSheet").hidden) return;   // don't interrupt the menu, note editing or a caller lookup
+    if (!$("sheet").hidden || !views.note.hidden) return;   // don't interrupt the menu or note editing
     checking = true;
     try {
       const t = ((await navigator.clipboard.readText()) || "").trim();
@@ -2646,7 +2737,6 @@ const Avatar = (() => {
     show("parser");
     if (!copyAll.disabled) openSheet(); else toast("Couldn't find any fields in the shared text");
   } else run();
-  checkCallHash();
 
   /* ---------- auto-paste: read the clipboard whenever the app comes to the front ---------- */
   if (!shared) checkClipboard();
