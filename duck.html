@@ -41,29 +41,51 @@
   button.primary { background: var(--amber); color: #231a00; border-color: var(--amber); }
   button.on { background: var(--ok); color: #03170b; border-color: var(--ok); }
 
-  #sheet { position: fixed; left: 10px; right: 10px; bottom: calc(86px + env(safe-area-inset-bottom)); z-index: 6; padding: 14px; }
-  #sheet .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
-  #sheet h2 { margin: 0; font-size: 1.15rem; }
-  #sheet .sub { color: var(--muted); font-size: .88rem; margin-top: 4px; }
-  #sheet .status { margin-top: 8px; font-weight: 700; font-size: .9rem; }
-  #sheet .approx { color: var(--amber); font-size: .78rem; margin-top: 6px; }
-  #sheet .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+  /* money dots: gold $ with sparkles */
+  .money { width: 28px; height: 28px; position: relative; cursor: pointer; }
+  .money .c { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff3b0, #f0b429 55%, #b77a00);
+    border: 2.5px solid #fff; display: grid; place-items: center; font: 900 15px/1 system-ui, sans-serif; color: #3d2600;
+    box-shadow: 0 0 0 2px rgba(0,0,0,.35), 0 0 14px 4px rgba(255,204,51,.75); animation: glow 1.8s ease-in-out infinite; }
+  .money .sp { position: absolute; width: 10px; height: 10px; pointer-events: none; animation: twinkle 1.6s ease-in-out infinite; }
+  .money .sp::before, .money .sp::after { content: ""; position: absolute; left: 50%; top: 50%; background: #fffbe0; border-radius: 2px; transform: translate(-50%, -50%); }
+  .money .sp::before { width: 2px; height: 10px; } .money .sp::after { width: 10px; height: 2px; }
+  .money .s1 { left: -8px; top: -6px; } .money .s2 { right: -9px; top: 2px; animation-delay: .55s; } .money .s3 { left: 6px; bottom: -10px; animation-delay: 1.1s; transform: scale(.7); }
+  @keyframes twinkle { 0%, 100% { opacity: 0; transform: scale(.3) rotate(0); } 50% { opacity: 1; transform: scale(1) rotate(45deg); } }
+  @keyframes glow { 0%, 100% { box-shadow: 0 0 0 2px rgba(0,0,0,.35), 0 0 10px 2px rgba(255,204,51,.55); } 50% { box-shadow: 0 0 0 2px rgba(0,0,0,.35), 0 0 20px 7px rgba(255,204,51,.9); } }
+  .money.sel .c { border-color: #39ff88; }
+  .far .money { display: none; }
 
-  /* floating profile cards */
-  .pcard { --s: 1; pointer-events: auto; cursor: pointer; }
-  .pcard .in { transform: scale(var(--s)); transform-origin: 50% 100%; transition: transform .2s; }
-  .pcard .box { width: 210px; padding: 9px 12px 9px 18px; position: relative; border-radius: 12px;
-    background: rgba(14,20,32,.92); border: 2px solid var(--tc); box-shadow: 0 6px 18px rgba(0,0,0,.45); }
-  .pcard .box::before { content: ""; position: absolute; left: 7px; top: 10px; bottom: 10px; width: 4px; border-radius: 2px; background: var(--tc); }
-  .pcard .box::after { content: ""; position: absolute; left: 50%; bottom: -9px; width: 14px; height: 14px; background: rgb(14,20,32);
-    border-right: 2px solid var(--tc); border-bottom: 2px solid var(--tc); transform: translateX(-50%) rotate(45deg); }
-  .pcard .n { font-weight: 800; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #e6ebf2; }
-  .pcard .r { font-weight: 800; font-size: 11.5px; letter-spacing: .04em; color: var(--tc); margin-top: 2px; }
-  .pcard .s { font-size: 12px; font-weight: 600; color: #93a1b8; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .pcard .s i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--sc); margin-right: 6px; }
-  .pcard .gap { height: 16px; }
-  .pcard.sel .box { box-shadow: 0 0 0 3px rgba(240,180,41,.6), 0 6px 18px rgba(0,0,0,.45); }
-  .cards-off .pcard { display: none; }
+  /* spy scanner dossier */
+  #scan { position: fixed; left: 10px; right: 10px; bottom: calc(86px + env(safe-area-inset-bottom)); z-index: 6; max-height: 62vh; overflow: hidden auto;
+    background: rgba(2, 12, 6, .93); border: 1.5px solid #1fd36b; border-radius: 6px; color: #8dffb8;
+    font: 13px/1.45 ui-monospace, "Roboto Mono", "SFMono-Regular", Menlo, Consolas, monospace; box-shadow: 0 0 0 1px rgba(31,211,107,.25), 0 0 24px rgba(31,211,107,.25); }
+  #scan::before { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 2;
+    background: repeating-linear-gradient(to bottom, rgba(141,255,184,.06) 0 1px, transparent 1px 3px); }
+  #scan .beam { position: absolute; left: 0; right: 0; height: 40px; top: -40px; pointer-events: none; z-index: 3;
+    background: linear-gradient(to bottom, transparent, rgba(57,255,136,.28), transparent); }
+  #scan.scanning .beam { animation: beam .9s linear 1; }
+  @keyframes beam { from { top: -40px; } to { top: 100%; } }
+  .sc-hd { position: sticky; top: 0; z-index: 4; display: flex; justify-content: space-between; gap: 8px; padding: 8px 12px; background: #062a14; border-bottom: 1px solid #1fd36b;
+    font-weight: 700; letter-spacing: .08em; font-size: 11.5px; color: #39ff88; text-transform: uppercase; }
+  .sc-hd .blink { animation: blink 1s steps(1) infinite; } @keyframes blink { 50% { opacity: 0; } }
+  .sc-bd { padding: 10px 12px 4px; position: relative; z-index: 1; }
+  .sc-st { margin-bottom: 8px; color: #39ff88; }
+  .sc-bar { height: 6px; border: 1px solid #1fd36b; margin: 4px 0 2px; } .sc-bar i { display: block; height: 100%; width: 0; background: #39ff88; }
+  .sc-row { display: grid; grid-template-columns: 92px 1fr; gap: 8px; padding: 2px 0; opacity: 0; }
+  .sc-row.on { opacity: 1; }
+  .sc-row .k { color: #4fb37a; } .sc-row .v { color: #d8ffe6; word-break: break-word; }
+  .sc-row .v.tier { color: var(--tc); font-weight: 700; }
+  .sc-row .v a { color: #d8ffe6; text-decoration: underline; text-decoration-color: #1fd36b; }
+  .sc-row .v .cur::after { content: "\2588"; animation: blink .7s steps(1) infinite; color: #39ff88; }
+  .sc-sep { border-top: 1px dashed rgba(31,211,107,.45); margin: 6px 0; opacity: 0; } .sc-sep.on { opacity: 1; }
+  .sc-stamp { display: inline-block; margin: 6px 0 2px; padding: 3px 10px; border: 2px solid #ffcc33; color: #ffcc33; font-weight: 800; letter-spacing: .08em;
+    transform: rotate(-3deg); opacity: 0; } .sc-stamp.on { opacity: 1; animation: stamp .35s cubic-bezier(.2,1.6,.4,1); }
+  @keyframes stamp { from { transform: rotate(-3deg) scale(1.8); opacity: 0; } }
+  .sc-warn { color: #ffcc33; font-size: 11.5px; margin-top: 4px; }
+  .sc-act { position: sticky; bottom: 0; z-index: 4; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 8px 12px 10px; background: rgba(2,12,6,.97); border-top: 1px solid rgba(31,211,107,.4); }
+  .sc-act button { font: 700 12px ui-monospace, "Roboto Mono", monospace; letter-spacing: .06em; min-height: 44px; border-radius: 4px; background: transparent; color: #39ff88; border: 1.5px solid #1fd36b; }
+  .sc-act button:active { background: rgba(31,211,107,.15); }
+  @media (prefers-reduced-motion: reduce) { .money .c, .money .sp, #scan .beam, .sc-hd .blink { animation: none; } .money .sp { opacity: .8; } }
 
   #setup, #fatal { position: fixed; inset: 0; z-index: 20; overflow-y: auto; background: var(--bg); padding: calc(20px + env(safe-area-inset-top)) 18px 30px; }
   #setup .wrap, #fatal .wrap { max-width: 520px; margin: 0 auto; }
@@ -80,12 +102,13 @@
 
   /* the ducks */
   #flock { position: fixed; inset: 0; pointer-events: none; z-index: 4; overflow: hidden; }
-  .duck { position: absolute; width: 34px; height: 16px; color: var(--flock, rgba(255,255,255,.85)); filter: drop-shadow(0 2px 3px rgba(0,0,0,.5)); }
-  .duck path { animation: flap .5s ease-in-out infinite alternate; transform-origin: 50% 50%; }
-  @keyframes flap { from { transform: scaleY(1); } to { transform: scaleY(.45); } }
+  .duck { position: absolute; width: 42px; height: 30px; filter: drop-shadow(0 3px 2px rgba(0,0,0,.35)); }
+  .duck .fA { animation: frameA .36s steps(1) infinite; } .duck .fB { animation: frameB .36s steps(1) infinite; }
+  @keyframes frameA { 0% { opacity: 1; } 50% { opacity: 0; } }
+  @keyframes frameB { 0% { opacity: 0; } 50% { opacity: 1; } }
   .flying { animation: cross var(--dur, 14s) linear forwards; }
   @keyframes cross { from { transform: translate(-60px, 0); } to { transform: translate(calc(100vw + 120px), var(--drift, -40px)); } }
-  @media (prefers-reduced-motion: reduce) { .duck path, .flying { animation: none; } #flock { display: none; } }
+  @media (prefers-reduced-motion: reduce) { .duck .fA, .duck .fB, .flying { animation: none; } .duck .fB { opacity: 0; } #flock { display: none; } }
 </style>
 </head>
 <body>
@@ -105,12 +128,11 @@
   <button id="btnNext" type="button">Next house</button>
 </div>
 
-<div id="sheet" class="glass" hidden>
-  <div class="top"><div><h2 id="sName"></h2><div class="sub" id="sSub"></div></div><span class="tchip" id="sChip"></span></div>
-  <div class="sub" id="sAddr"></div>
-  <div class="status" id="sStatus"></div>
-  <div class="approx" id="sApprox" hidden>Location is approximate (street or ZIP level).</div>
-  <div class="acts"><button id="sOrbit" type="button">Circle the house</button><button id="sClose" type="button">Close</button></div>
+<div id="scan" hidden role="dialog" aria-label="Subject file">
+  <div class="beam"></div>
+  <div class="sc-hd"><span><span class="blink">&#9673;</span> DUCK INTEL // SUBJECT FILE</span><span id="scId"></span></div>
+  <div class="sc-bd" id="scBody"></div>
+  <div class="sc-act"><button id="scOrbit" type="button">[ CIRCLE TARGET ]</button><button id="scClose" type="button">[ CLOSE FILE ]</button></div>
 </div>
 
 <div id="setup" hidden><div class="wrap">
@@ -151,7 +173,7 @@
   }
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   // Golden flock (bought with Bread in TPS Notes)
-  { const br = jget("tps-bread-v1", {}); if (br.equip && br.equip["extra.flock"] === "x-goldflock") document.documentElement.style.setProperty("--flock", "#f0b429"); }
+  { const br = jget("tps-bread-v1", {}); if (br.equip && br.equip["extra.flock"] === "x-goldflock") { const r = document.documentElement.style; r.setProperty("--fb", "#ffd54a"); r.setProperty("--fh", "#f5b81c"); r.setProperty("--fw", "#f0a500"); } }
 
   /* ---------- ranks (same table as TPS Notes) ---------- */
   const TIERS = [
@@ -180,11 +202,11 @@
       if (last) {
         if (last.o === "dnc") return;                                   // trashed: not shown on the map
         const win = ev.find(x => x.o === "success");
-        if (win) status = { text: "Success" + (win.amt ? ", $" + Math.round(win.amt).toLocaleString() : ""), color: "#6fcf97" };
+        if (win) { status = { text: "Success" + (win.amt ? ", $" + Math.round(win.amt).toLocaleString() : ""), color: "#6fcf97" }; f.money = win.amt || 0; f.won = true; }
         else if (last.o === "cb_voicemail" || last.o === "cb_answered") status = { text: "Call back scheduled", color: "#f0b429" };
         else status = { text: `Called ${ev.length} time${ev.length === 1 ? "" : "s"}`, color: "#56ccf2" };
       }
-      out.push({ ...f, fp, tier: tierOf(f.age), status, note: n.title });
+      out.push({ ...f, fp, tier: tierOf(f.age), status, note: n.title, calls: ev.filter(x => x.o !== "dnc").length, lastT: last ? last.t : 0 });
     }));
     return out;
   }
@@ -230,21 +252,15 @@
   const markers = new Map();
   let ready = false;
 
-  function cardEl(e) {
-    const w = document.createElement("div"); w.className = "pcard";
-    w.style.setProperty("--tc", e.tier.color);
-    const inn = document.createElement("div"); inn.className = "in";
-    const box = document.createElement("div"); box.className = "box";
-    const n = document.createElement("div"); n.className = "n"; n.textContent = e.name || "No name";
-    const r = document.createElement("div"); r.className = "r"; r.textContent = e.tier.short.toUpperCase() + (e.age ? "\u2003AGE " + e.age : "");
-    const s = document.createElement("div"); s.className = "s"; s.style.setProperty("--sc", e.status.color);
-    s.appendChild(document.createElement("i")); s.append(e.status.text);
-    const gap = document.createElement("div"); gap.className = "gap";
-    box.append(n, r, s); inn.append(box, gap); w.appendChild(inn);
-    w.addEventListener("click", ev => { ev.stopPropagation(); stopDuck(); select(e); flyToHouse(e); });
+  // Gold "$" dot with sparkles for every house where money was made
+  function moneyEl(e) {
+    const w = document.createElement("div"); w.className = "money";
+    w.innerHTML = '<span class="sp s1"></span><span class="sp s2"></span><span class="sp s3"></span><span class="c">$</span>';
+    w.setAttribute("role", "button"); w.setAttribute("aria-label", "Open file: " + (e.name || "subject"));
+    w.addEventListener("click", ev => { ev.stopPropagation(); openFile(e); });
     return w;
   }
-  const geojson = () => ({ type: "FeatureCollection", features: placed.map(e => ({ type: "Feature", geometry: { type: "Point", coordinates: [e.lng, e.lat] }, properties: { fp: e.fp, color: e.tier.color } })) });
+  const geojson = () => ({ type: "FeatureCollection", features: placed.map(e => ({ type: "Feature", geometry: { type: "Point", coordinates: [e.lng, e.lat] }, properties: { fp: e.fp, color: e.tier.color, money: e.won ? 1 : 0 } })) });
 
   function setupStyle() {
     // Space, stars and atmosphere around the globe
@@ -273,15 +289,19 @@
       map.addLayer({ id: "cluster-count", type: "symbol", source: "houses", filter: ["has", "point_count"],
         layout: { "text-field": ["get", "point_count_abbreviated"], "text-size": 15, "text-font": ["DIN Pro Bold", "Arial Unicode MS Bold"], "text-allow-overlap": true },
         paint: { "text-color": "#231a00" } });
-      map.addLayer({ id: "pins", type: "circle", source: "houses", filter: ["!", ["has", "point_count"]],
+      map.addLayer({ id: "pin-sel", type: "circle", source: "houses", filter: ["==", ["get", "fp"], ""],
+        paint: { "circle-color": "rgba(0,0,0,0)", "circle-radius": 15, "circle-stroke-width": 3, "circle-stroke-color": "#39ff88" } });
+      map.addLayer({ id: "pins", type: "circle", source: "houses", filter: ["all", ["!", ["has", "point_count"]], ["!=", ["get", "money"], 1]],
         paint: { "circle-color": ["get", "color"], "circle-radius": 7, "circle-stroke-width": 2.5, "circle-stroke-color": "#ffffff", "circle-pitch-alignment": "map" } });
+      map.addLayer({ id: "pins-hit", type: "circle", source: "houses", filter: ["all", ["!", ["has", "point_count"]], ["!=", ["get", "money"], 1]],
+        paint: { "circle-color": "rgba(0,0,0,0)", "circle-radius": 20 } });
       map.on("click", "clusters", ev => {
         const f = ev.features && ev.features[0]; if (!f) return;
         map.getSource("houses").getClusterExpansionZoom(f.properties.cluster_id, (err, z) => {
           if (!err) { stopDuck(); map.easeTo({ center: f.geometry.coordinates, zoom: z + 0.5, pitch: 50, duration: 1600 }); }
         });
       });
-      map.on("click", "pins", ev => { const e = placed.find(x => x.fp === ev.features[0].properties.fp); if (e) { stopDuck(); select(e); flyToHouse(e); } });
+      map.on("click", "pins-hit", ev => { const e = placed.find(x => x.fp === ev.features[0].properties.fp); if (e) openFile(e); });
     }
     ready = true;
     refreshMap();
@@ -292,19 +312,14 @@
     if (!ready) return;
     map.getSource("houses").setData(geojson());
     placed.forEach(e => {
-      if (markers.has(e.fp)) return;
-      const m = new mapboxgl.Marker({ element: cardEl(e), anchor: "bottom", occludedOpacity: 0.35 }).setLngLat([e.lng, e.lat]).addTo(map);
+      if (!e.won || markers.has(e.fp)) return;
+      const m = new mapboxgl.Marker({ element: moneyEl(e), anchor: "center", occludedOpacity: 0.5 }).setLngLat([e.lng, e.lat]).addTo(map);
       markers.set(e.fp, m);
     });
     sizeCards();
   }
-  // Cards appear once you're close enough to see houses, and grow as you fly lower
-  function sizeCards() {
-    const z = map.getZoom();
-    document.body.classList.toggle("cards-off", z < 13.2);
-    const s = Math.max(0.62, Math.min(1, 0.62 + (z - 13.2) * 0.13)).toFixed(3);
-    markers.forEach(m => m.getElement().style.setProperty("--s", s));
-  }
+  // Money dots hide while zoomed out (they're counted inside the gold cluster bubbles instead)
+  function sizeCards() { document.body.classList.toggle("far", map.getZoom() <= 13); }
   map.on("zoom", sizeCards);
 
   /* ---------- HUD ---------- */
@@ -395,19 +410,86 @@
     orbiting = false;
   }
 
-  function select(e) {
-    selected = e;
-    markers.forEach((m, fp) => m.getElement().classList.toggle("sel", fp === e.fp));
-    $("sName").textContent = e.name || "No name";
-    $("sSub").textContent = [e.age ? "Age " + e.age : "", e.note].filter(Boolean).join(", ");
-    $("sChip").textContent = e.tier.short; $("sChip").style.setProperty("--tc", e.tier.color);
-    $("sAddr").textContent = [e.address, e.county].filter(Boolean).join(", ");
-    $("sStatus").textContent = e.status.text; $("sStatus").style.color = e.status.color;
-    $("sApprox").hidden = !e.approx;
-    $("sheet").hidden = false;
+  /* ---------- spy scanner: only opens when you tap a dot ---------- */
+  const jprof = () => jget("tps-profiles-v1", {});
+  const caseId = fp => { let h = 7; for (const ch of fp) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return "DH-" + (h % 0xFFFFF).toString(16).toUpperCase().padStart(5, "0"); };
+  const pPhone = p => { const d = (p || "").replace(/\D/g, "").slice(-10); return d.length === 10 ? `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}` : p; };
+  const fmtDate = t => new Date(t).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
+  let scanRun = 0;
+  function highlight(fp) {
+    if (map.getLayer("pin-sel")) map.setFilter("pin-sel", ["==", ["get", "fp"], fp || ""]);
+    markers.forEach((m, k) => m.getElement().classList.toggle("sel", k === fp));
   }
-  $("sClose").onclick = () => { $("sheet").hidden = true; selected = null; markers.forEach(m => m.getElement().classList.remove("sel")); stopOrbit(); };
-  $("sOrbit").onclick = async () => { if (!selected) return; stopDuck(); await flyToHouse(selected, 1800); orbit(0); };
+  function openFile(e) {
+    stopDuck(); selected = e; highlight(e.fp); flyToHouse(e, 2600);
+    const run = ++scanRun, body = $("scBody"), saved = jprof()[e.fp], p = saved && saved.p;
+    $("scId").textContent = "CASE " + caseId(e.fp);
+    body.innerHTML = "";
+    const rows = [];
+    const row = (k, v, cls) => { if (!v) return; rows.push({ k, v: String(v), cls }); };
+    const sep = () => rows.push({ sep: true });
+    row("SUBJECT", (e.name || "UNKNOWN").toUpperCase());
+    row("CLASS", e.tier.short.toUpperCase() + (e.age ? "  //  AGE " + e.age : ""), "tier");
+    if (p && p.born) row("DOB", p.born.toUpperCase());
+    row("LINE", pPhone(e.phone), "tel");
+    sep();
+    row("LOCATION", e.address);
+    row("SECTOR", e.county);
+    if (p && p.current && p.current.dates) row("RESIDING", p.current.dates);
+    row("COORDS", `${e.lat.toFixed(5)}, ${e.lng.toFixed(5)}`);
+    if (p && p.aka && p.aka.length) row("ALIASES", p.aka.join(" / "));
+    if (p && p.previous && p.previous.length) row("PRIOR LOCS", p.previous.length + " on record");
+    if (p && p.relatives && p.relatives.length) row("KNOWN TIES", `${p.relatives.length} relatives, ${(p.associates || []).length} associates`);
+    sep();
+    row("STATUS", e.status.text.toUpperCase());
+    row("CONTACT", e.calls ? `${e.calls} attempt${e.calls === 1 ? "" : "s"}` + (e.lastT ? ", last " + fmtDate(e.lastT) : "") : "NONE ON RECORD");
+    row("FILED IN", e.note);
+    const stamp = e.won ? (e.money ? `SECURED $${Math.round(e.money).toLocaleString()}` : "SECURED") : "";
+    const scan = $("scan");
+    scan.hidden = false; scan.scrollTop = 0;
+    scan.classList.remove("scanning"); void scan.offsetWidth; scan.classList.add("scanning");
+    const st = document.createElement("div"); st.className = "sc-st"; st.textContent = "> SCANNING TARGET...";
+    const bar = document.createElement("div"); bar.className = "sc-bar"; const fill = document.createElement("i"); bar.appendChild(fill);
+    body.append(st, bar);
+    const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const els = rows.map(r => {
+      if (r.sep) { const d = document.createElement("div"); d.className = "sc-sep"; body.appendChild(d); return { el: d }; }
+      const d = document.createElement("div"); d.className = "sc-row";
+      const k = document.createElement("span"); k.className = "k"; k.textContent = r.k;
+      const v = document.createElement("span"); v.className = "v" + (r.cls === "tier" ? " tier" : "");
+      if (r.cls === "tier") v.style.setProperty("--tc", e.tier.color);
+      d.append(k, v); body.appendChild(d);
+      return { el: d, v, r };
+    });
+    let stampEl = null;
+    if (stamp) { stampEl = document.createElement("div"); stampEl.className = "sc-stamp"; stampEl.textContent = stamp; body.appendChild(stampEl); }
+    if (e.approx) { const w = document.createElement("div"); w.className = "sc-warn"; w.textContent = "! LOCATION APPROXIMATE (STREET/ZIP LEVEL)"; body.appendChild(w); }
+    const finish = (x) => {
+      if (x.r && x.r.cls === "tel") { x.v.innerHTML = ""; const a = document.createElement("a"); a.href = "tel:" + (localStorage.getItem("priv67") === "0" ? "+1" : "*67") + e.phone.replace(/\D/g, "").slice(-10); a.textContent = x.r.v; x.v.appendChild(a); }
+      else if (x.r) x.v.textContent = x.r.v;
+    };
+    if (still) { fill.style.width = "100%"; st.textContent = "> MATCH FOUND"; els.forEach(x => { x.el.classList.add("on"); finish(x); }); if (stampEl) stampEl.classList.add("on"); return; }
+    (async () => {
+      for (let i = 0; i <= 10; i++) { if (run !== scanRun) return; fill.style.width = i * 10 + "%"; await sleep(45); }
+      st.textContent = "> MATCH FOUND. DECRYPTING FILE...";
+      for (const x of els) {
+        if (run !== scanRun) return;
+        x.el.classList.add("on");
+        if (!x.r) { await sleep(40); continue; }
+        const full = x.r.v, step = Math.max(1, Math.ceil(full.length / 6));
+        x.v.className += " cur";
+        for (let n = 0; n <= full.length; n += step) { if (run !== scanRun) return; x.v.textContent = full.slice(0, n); await sleep(14); }
+        x.v.className = x.v.className.replace(" cur", ""); finish(x);
+        await sleep(30);
+      }
+      if (run !== scanRun) return;
+      st.textContent = "> FILE DECRYPTED";
+      if (stampEl) { stampEl.classList.add("on"); try { navigator.vibrate && navigator.vibrate([20, 40, 20]); } catch {} }
+    })();
+  }
+  function closeFile() { scanRun++; $("scan").hidden = true; selected = null; highlight(null); stopOrbit(); }
+  $("scClose").onclick = closeFile;
+  $("scOrbit").onclick = async () => { if (!selected) return; const e = selected; stopDuck(); await flyToHouse(e, 1500); if (selected === e) orbit(0); };
 
   // Any touch on the map takes back control
   ["mousedown", "touchstart", "wheel"].forEach(t => map.getCanvasContainer().addEventListener(t, () => { if (duck) stopDuck(); orbiting = false; }, { passive: true }));
@@ -418,7 +500,6 @@
     while (duck && placed.length) {
       tourIdx = (tourIdx + 1) % placed.length;
       const e = placed[tourIdx];
-      select(e);
       if (Math.random() < 0.5) releaseFlock();
       await flyToHouse(e, 5200);
       if (!duck) break;
@@ -428,17 +509,19 @@
   $("btnDuck").onclick = () => {
     if (duck) { stopDuck(); stopOrbit(); return; }
     if (!placed.length) { toast("No houses on the map yet"); return; }
+    closeFile();
     duck = true; $("btnDuck").textContent = "Stop"; $("btnDuck").classList.add("on");
     releaseFlock(); duckTour();
   };
-  $("btnHome").onclick = () => { stopDuck(); stopOrbit(); $("sheet").hidden = true; overview(3200); };
+  $("btnHome").onclick = () => { stopDuck(); closeFile(); overview(3200); };
   $("btnNext").onclick = () => {
     if (!placed.length) return;
-    stopDuck(); tourIdx = (tourIdx + 1) % placed.length; const e = placed[tourIdx]; select(e); flyToHouse(e);
+    stopDuck(); closeFile(); tourIdx = (tourIdx + 1) % placed.length; flyToHouse(placed[tourIdx]);
   };
 
   /* ---------- a little flock of ducks crosses the sky now and then ---------- */
-  const DUCK_SVG = '<svg viewBox="0 0 34 16" class="duck"><path d="M1 9 Q9 1 17 9 Q25 1 33 9" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>';
+  // A little pixel-art mallard with two wing frames (all gold if you bought the golden flock)
+  const DUCK_SVG = '<svg viewBox="0 0 21 15" class="duck" shape-rendering="crispEdges"><g class="fA"><rect x="8" y="0" width="2" height="1" style="fill:#1f1a24"/><rect x="7" y="1" width="1" height="1" style="fill:#1f1a24"/><rect x="8" y="1" width="2" height="1" style="fill:var(--fw,#cbd5e1)"/><rect x="10" y="1" width="1" height="1" style="fill:#1f1a24"/><rect x="6" y="2" width="1" height="1" style="fill:#1f1a24"/><rect x="7" y="2" width="3" height="1" style="fill:var(--fw,#cbd5e1)"/><rect x="10" y="2" width="1" height="1" style="fill:#1f1a24"/><rect x="14" y="2" width="1" height="1" style="fill:#1f1a24"/><rect x="6" y="3" width="1" height="1" style="fill:#1f1a24"/><rect x="7" y="3" width="3" height="1" style="fill:var(--fw,#cbd5e1)"/><rect x="10" y="3" width="1" height="1" style="fill:#1f1a24"/><rect x="12" y="3" width="2" height="1" style="fill:#1f1a24"/><rect x="14" y="3" width="1" height="1" style="fill:var(--fh,#2fa36b)"/><rect x="15" y="3" width="2" height="1" style="fill:#1f1a24"/><rect x="5" y="4" width="1" height="1" style="fill:#1f1a24"/><rect x="6" y="4" width="5" height="1" style="fill:var(--fw,#cbd5e1)"/><rect x="11" y="4" width="1" height="1" style="fill:#1f1a24"/><rect x="12" y="4" width="5" height="1" style="fill:var(--fh,#2fa36b)"/><rect x="17" y="4" width="1" height="1" style="fill:#1f1a24"/><rect x="4" y="5" width="2" height="1" style="fill:#1f1a24"/><rect x="6" y="5" width="5" height="1" style="fill:var(--fw,#cbd5e1)"/><rect x="11" y="5" width="1" height="1" style="fill:#1f1a24"/><rect x="12" y="5" width="3" height="1" style="fill:var(--fh,#2fa36b)"/><rect x="15" y="5" width="1" height="1" style="fill:#1f1a24"/><rect x="16" y="5" width="1" height="1" style="fill:var(--fh,#2fa36b)"/><rect x="17" y="5" width="2" height="1" style="fill:#1f1a24"/><rect x="3" y="6" width="1" height="1" style="fill:#1f1a24"/><rect x="4" y="6" width="1" height="1" style="fill:var(--fb,#f1f5f9)"/><rect x="5" y="6" width="6" height="1" style="fill:var(--fw,#cbd5e1)"/><rect x="11" y="6" width="1" height="1" style="fill:var(--fb,#f1f5f9)"/><rect x="12" y="6" width="5" height="1" style="fill:var(--fh,#2fa36b)"/><rect x="17" y="6" width="2" height="1" style="fill:#ff9a3c"/><rect x="19" y="6" width="1" height="1" style="fill:#1f1a24"/><rect x="1" y="7" width="2" height="1" style="fill:#1f1a24"/><rect x="3" y="7" width="1" height="1" style="fill:var(--fb,#f1f5f9)"/><rect x="4" y="7" width="8" height="1" style="fill:var(--fw,#cbd5e1)"/><rect x="12" y="7" width="5" height="1" style="fill:var(--fh,#2fa36b)"/><rect x="17" y="7" width="3" height="1" style="fill:#ff9a3c"/><rect x="20" y="7" width="1" height="1" style="fill:#1f1a24"/><rect x="0" y="8" width="1" height="1" style="fill:#1f1a24"/><rect x="1" y="8" width="13" height="1" style="fill:var(--fb,#f1f5f9)"/><rect x="14" y="8" width="1" height="1" style="fill:var(--fh,#2fa36b)"/><rect x="15" y="8" width="5" height="1" style="fill:#1f1a24"/><rect x="0" y="9" width="1" height="1" style="fill:#1f1a24"/><rect x="1" y="9" width="13" height="1" style="fill:var(--fb,#f1f5f9)"/><rect x="14" y="9" width="1" height="1" style="fill:#1f1a24"/><rect x="1" y="10" width="2" height="1" style="fill:#1f1a24"/><rect x="3" y="10" width="10" height="1" style="fill:var(--fb,#f1f5f9)"/><rect x="13" y="10" width="1" height="1" style="fill:#1f1a24"/><rect x="3" y="11" width="1" height="1" style="fill:#1f1a24"/><rect x="4" y="11" width="8" height="1" style="fill:var(--fb,#f1f5f9)"/><rect x="12" y="11" width="1" height="1" style="fill:#1f1a24"/><rect x="4" y="12" width="8" height="1" style="fill:#1f1a24"/></g><g class="fB"><rect x="14" y="2" width="1" height="1" style="fill:#1f1a24"/><rect x="12" y="3" width="2" height="1" style="fill:#1f1a24"/><rect x="14" y="3" width="1" height="1" style="fill:var(--fh,#2fa36b)"/><rect x="15" y="3" width="2" height="1" style="fill:#1f1a24"/><rect x="11" y="4" width="1" height="1" style="fill:#1f1a24"/><rect x="12" y="4" width="5" height="1" style="fill:var(--fh,#2fa36b)"/><rect x="17" y="4" width="1" height="1" style="fill:#1f1a24"/><rect x="4" y="5" width="8" height="1" style="fill:#1f1a24"/><rect x="12" y="5" width="3" height="1" style="fill:var(--fh,#2fa36b)"/><rect x="15" y="5" width="1" height="1" style="fill:#1f1a24"/><rect x="16" y="5" width="1" height="1" style="fill:var(--fh,#2fa36b)"/><rect x="17" y="5" width="2" height="1" style="fill:#1f1a24"/><rect x="3" y="6" width="1" height="1" style="fill:#1f1a24"/><rect x="4" y="6" width="8" height="1" style="fill:var(--fb,#f1f5f9)"/><rect x="12" y="6" width="5" height="1" style="fill:var(--fh,#2fa36b)"/><rect x="17" y="6" width="2" height="1" style="fill:#ff9a3c"/><rect x="19" y="6" width="1" height="1" style="fill:#1f1a24"/><rect x="1" y="7" width="2" height="1" style="fill:#1f1a24"/><rect x="3" y="7" width="9" height="1" style="fill:var(--fb,#f1f5f9)"/><rect x="12" y="7" width="5" height="1" style="fill:var(--fh,#2fa36b)"/><rect x="17" y="7" width="3" height="1" style="fill:#ff9a3c"/><rect x="20" y="7" width="1" height="1" style="fill:#1f1a24"/><rect x="0" y="8" width="1" height="1" style="fill:#1f1a24"/><rect x="1" y="8" width="13" height="1" style="fill:var(--fb,#f1f5f9)"/><rect x="14" y="8" width="1" height="1" style="fill:var(--fh,#2fa36b)"/><rect x="15" y="8" width="5" height="1" style="fill:#1f1a24"/><rect x="0" y="9" width="1" height="1" style="fill:#1f1a24"/><rect x="1" y="9" width="13" height="1" style="fill:var(--fb,#f1f5f9)"/><rect x="14" y="9" width="1" height="1" style="fill:#1f1a24"/><rect x="1" y="10" width="2" height="1" style="fill:#1f1a24"/><rect x="3" y="10" width="1" height="1" style="fill:var(--fb,#f1f5f9)"/><rect x="4" y="10" width="8" height="1" style="fill:var(--fw,#cbd5e1)"/><rect x="12" y="10" width="1" height="1" style="fill:var(--fb,#f1f5f9)"/><rect x="13" y="10" width="1" height="1" style="fill:#1f1a24"/><rect x="3" y="11" width="1" height="1" style="fill:#1f1a24"/><rect x="4" y="11" width="1" height="1" style="fill:var(--fb,#f1f5f9)"/><rect x="5" y="11" width="6" height="1" style="fill:var(--fw,#cbd5e1)"/><rect x="11" y="11" width="1" height="1" style="fill:var(--fb,#f1f5f9)"/><rect x="12" y="11" width="1" height="1" style="fill:#1f1a24"/><rect x="4" y="12" width="1" height="1" style="fill:#1f1a24"/><rect x="5" y="12" width="5" height="1" style="fill:var(--fw,#cbd5e1)"/><rect x="10" y="12" width="2" height="1" style="fill:#1f1a24"/><rect x="5" y="13" width="1" height="1" style="fill:#1f1a24"/><rect x="6" y="13" width="3" height="1" style="fill:var(--fw,#cbd5e1)"/><rect x="9" y="13" width="1" height="1" style="fill:#1f1a24"/><rect x="6" y="14" width="1" height="1" style="fill:#1f1a24"/><rect x="7" y="14" width="1" height="1" style="fill:var(--fw,#cbd5e1)"/><rect x="8" y="14" width="1" height="1" style="fill:#1f1a24"/></g></svg>';
   function releaseFlock() {
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const flock = $("flock"), top = 22 + Math.random() * 28, n = 5 + Math.floor(Math.random() * 3), dur = 11 + Math.random() * 5;
@@ -448,7 +531,7 @@
       const row = Math.ceil(i / 2), side = i % 2 ? 1 : -1;
       w.style.top = `calc(${top}vh + ${row * side * 16}px)`; w.style.left = `${-row * 26}px`;
       w.style.setProperty("--dur", dur + "s"); w.style.setProperty("--drift", (-30 - Math.random() * 60) + "px");
-      w.innerHTML = DUCK_SVG; w.firstChild.style.animationDelay = (Math.random() * .4) + "s";
+      w.innerHTML = DUCK_SVG; const dl = (Math.random() * .36).toFixed(2) + "s"; w.querySelectorAll("g").forEach(g => g.style.animationDelay = dl);
       flock.appendChild(w);
       setTimeout(() => w.remove(), dur * 1000 + 500);
     }
