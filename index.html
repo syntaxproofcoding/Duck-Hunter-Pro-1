@@ -141,6 +141,14 @@
   .sheet .notes { margin-top: 0; }
   .sheet .newRow { display: flex; gap: 8px; margin-top: 12px; }
   .sheet .newRow button { flex: none; }
+  .naOpts { display: grid; gap: 8px; margin-top: 12px; }
+  .naOpts button { min-height: 54px; font-size: 1rem; }
+  .vmNote { font-size: .8rem; color: var(--amber); font-weight: 700; margin-top: 4px; }
+  .sgBox { border: 1.5px solid var(--amber); border-radius: var(--r-lg); padding: 12px; margin: 0 0 14px; background: var(--well); }
+  .sgBox p { margin: 0 0 10px; font-size: .9rem; color: var(--muted); }
+  .sgBox p b { color: var(--text); }
+  .sgBox button { width: 100%; min-height: 54px; font-size: 1rem; }
+  .sheetOr { font-size: .8rem; color: var(--muted); margin: 0 2px 8px; font-weight: 700; }
   .sheet .preview { white-space: pre-wrap; font-size: .82rem; color: var(--muted); background: var(--well); border-radius: var(--r-sm); padding: 10px 12px; margin: 0 0 14px; }
 
   #toast {
@@ -636,11 +644,27 @@
 <div class="dock" id="dock"><button id="copyAll" type="button" class="primary" disabled>Copy to note</button></div>
 
 <!-- Copy-to-note menu -->
+<!-- No answer: voicemail left? -->
+<div class="scrim" id="naSheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="naTitle">
+    <h2 id="naTitle">No answer. Did you leave a voicemail?</h2>
+    <p class="sub" id="naWho" style="margin:-6px 0 4px"></p>
+    <p class="fine" id="naLast" hidden style="color:var(--amber);font-weight:700;font-size:.88rem"></p>
+    <div class="naOpts">
+      <button id="naVm" type="button" class="primary">Yes, left a voicemail</button>
+      <button id="naNoVm" type="button">No voicemail</button>
+    </div>
+    <button id="naCancel" type="button" class="ghost" style="width:100%;margin-top:8px">Cancel</button>
+  </div>
+</div>
+
 <div class="scrim" id="sheet" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
     <h2 id="sheetTitle">Copy to which note?</h2>
+    <div class="sgBox" id="sgBox" hidden><p id="sgText"></p><button id="sgYes" type="button" class="primary"></button></div>
     <div class="sheetTier"><span class="chip" id="sheetChip"></span><span class="gain" id="sheetGain"></span></div>
     <p class="preview" id="sheetPreview"></p>
+    <p class="sheetOr" id="sheetOr" hidden>Or pick another note</p>
     <ul class="notes" id="sheetList"></ul>
     <div class="newRow">
       <label for="sheetNew" class="sr">New note name</label>
@@ -699,7 +723,7 @@
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="cbTitle">
     <h2 id="cbTitle">Call back</h2>
     <p class="sub" id="cbWho" style="margin:-6px 0 12px"></p>
-    <div class="seg two" id="cbKind">
+    <div class="seg two" id="cbKind" hidden>
       <button type="button" data-k="cb_voicemail" class="on"><b id="cbPtsVm"></b>Left a voicemail</button>
       <button type="button" data-k="cb_answered"><b id="cbPtsAns"></b>They answered</button>
     </div>
@@ -1440,6 +1464,7 @@ const Avatar = (() => {
       callsToday += w.events.filter(x => x.o !== "dnc" && dayKey(x.t) === tk).length;
       w.events.forEach(x => {
         outcomes[x.o] = (outcomes[x.o] || 0) + 1;
+        if (x.vm || x.o === "cb_voicemail") outcomes.vm_left = (outcomes.vm_left || 0) + 1;
         if (x.o !== "dnc") { const k = dayKey(x.t); callDays.set(k, (callDays.get(k) || 0) + 1); when(x.t); }
       });
       if (sc.status === "hidden") trashed++;
@@ -1519,6 +1544,8 @@ const Avatar = (() => {
     A("cday50", "Phone Marathon", "50 calls in one day", "Calls", "gold", 50, s => s.maxCallsDay),
     A("cday100", "Iron Ear", "100 calls in one day", "Calls", "legend", 100, s => s.maxCallsDay),
     A("na50", "Ring Ring", "50 No answers logged", "Calls", "bronze", 50, s => s.outcomes.no_answer || 0),
+    A("vmleft25", "After the Beep", "Leave 25 voicemails", "Calls", "bronze", 25, s => s.outcomes.vm_left || 0),
+    A("vmleft100", "Message Machine", "Leave 100 voicemails", "Calls", "silver", 100, s => s.outcomes.vm_left || 0),
     A("vm25", "Beep Collector", "25 Straight to VM logged", "Calls", "bronze", 25, s => s.outcomes.voicemail || 0),
     A("cb10", "Calendar Keeper", "Schedule 10 call backs", "Calls", "silver", 10, s => (s.outcomes.cb_voicemail || 0) + (s.outcomes.cb_answered || 0)),
     A("ontime5", "Right On Time", "5 call backs made on time", "Calls", "silver", 5, s => s.onTime),
@@ -1786,6 +1813,7 @@ const Avatar = (() => {
       ev.forEach(x => {
         if (x.t < a || x.t >= b) return;
         r.out[x.o] = (r.out[x.o] || 0) + 1;
+        if (x.o === "no_answer") { const k = x.vm ? "na_vm" : "na_plain"; r.out[k] = (r.out[k] || 0) + 1; }
         if (x.o !== "dnc") { r.calls++; const k = dayKey(x.t); r.callDays.set(k, (r.callDays.get(k) || 0) + 1); }
       });
       const win = ev.find(x => x.o === "success");
@@ -1872,7 +1900,7 @@ const Avatar = (() => {
     };
     const dl = (a, b) => prev ? delta(a, b, cmp) : null;
     if (perKind === "day") {
-      tile("Entries", P.entries.toLocaleString(), P.entries >= s.goal ? `Goal of ${s.goal} reached` : `${s.goal - P.entries} to go of ${s.goal}`, dl(P.entries, prev.entries), { bar: 100 * P.entries / s.goal });
+      tile("Entries", P.entries.toLocaleString(), P.entries >= s.goal ? `Goal of ${s.goal} reached` : `${s.goal - P.entries} to go of ${s.goal}`, dl(P.entries, prev && prev.entries), { bar: 100 * P.entries / s.goal });
     } else {
       tile("Entries", P.entries.toLocaleString(), `Goal hit ${goalDays} of ${nDays} day${nDays === 1 ? "" : "s"}`, dl(P.entries, prev && prev.entries));
     }
@@ -1920,11 +1948,13 @@ const Avatar = (() => {
 
     // ---- outcomes ----
     const ob = $("perOut"); ob.innerHTML = "";
-    const O = [["no_answer", "No answer"], ["voicemail", "Straight to voicemail"], ["cb_voicemail", "Call back, left voicemail"], ["cb_answered", "Call back, answered"], ["success", "Successful"], ["dnc", "Moved to trash"]];
+    const O = [["na_plain", "No answer, no voicemail"], ["na_vm", "No answer, left voicemail"], ["voicemail", "Straight to voicemail"], ["cb_voicemail", "Call back, left voicemail (older)"], ["cb_answered", "Call back scheduled"], ["success", "Successful"], ["dnc", "Moved to trash"]];
     const oMax = Math.max(0, ...O.map(([k]) => P.out[k] || 0));
     if (!oMax) ob.appendChild(el("p", "emptyNote", "No calls logged in this period."));
     else O.forEach(([k, label]) => {
-      const n = P.out[k] || 0, r = el("div", "orow");
+      const n = P.out[k] || 0;
+      if (k === "cb_voicemail" && !n) return;
+      const r = el("div", "orow");
       const bar = el("span", "bar"), i = document.createElement("i"); i.style.width = (100 * n / oMax) + "%"; bar.appendChild(i);
       r.append(el("span", "", label), el("b", "", n.toLocaleString()), bar); ob.appendChild(r);
     });
@@ -1980,6 +2010,7 @@ const Avatar = (() => {
     if (!$("profSheet").hidden) { $("profSheet").hidden = true; return; }
     if (!$("winSheet").hidden) { $("winSheet").hidden = true; return; }
     if (!$("cbSheet").hidden) { $("cbSheet").hidden = true; return; }
+    if (!$("naSheet").hidden) { $("naSheet").hidden = true; return; }
     if (!$("sheet").hidden) { $("sheet").hidden = true; return; }
     if (!views.note.hidden) { flushNote(); currentNote = null; show("notes"); }
   });
@@ -2110,6 +2141,8 @@ const Avatar = (() => {
     }
     const meta = [e.address, e.county, e.age ? "Age " + e.age : ""].filter(Boolean).join(", ");
     if (meta) li.appendChild(el("div", "wm", meta));
+    const vmL = sc.status !== "done" && lastVm(e);
+    if (vmL) { const n = vmCount(e); li.appendChild(el("div", "vmNote", `Voicemail left ${fmtWhen(vmL.t)}` + (n > 1 ? ` (${n} total)` : ""))); }
 
     const st = el("div", "ws"), left = el("span");
     if (sc.status === "callback") {
@@ -2117,7 +2150,7 @@ const Avatar = (() => {
       left.className = sc.overdue ? "over" : due ? "due" : "";
       left.textContent = (sc.overdue ? `Overdue (-${CB_LATE_PENALTY}): ` : due ? "Due now: " : "Call back ") + fmtWhen(sc.cb);
     } else if (sc.last) {
-      left.textContent = `${OUTCOMES[sc.last.o].label}${sc.last.amt ? " " + money(sc.last.amt) : ""}, ${fmtWhen(sc.last.t)}` + (sc.calls ? `. ${sc.calls} call${sc.calls === 1 ? "" : "s"}` : "");
+      left.textContent = `${sc.last.vm ? "No answer, left voicemail" : OUTCOMES[sc.last.o].label}${sc.last.amt ? " " + money(sc.last.amt) : ""}, ${fmtWhen(sc.last.t)}` + (sc.calls ? `. ${sc.calls} call${sc.calls === 1 ? "" : "s"}` : "");
     } else left.textContent = "Not called yet";
     st.append(left, el("b", "", `${sc.pts} XP`));
     li.appendChild(st);
@@ -2135,7 +2168,7 @@ const Avatar = (() => {
     } else if (sc.status === "done") {
       btn("Undo success", null, "", () => undoOutcome(e));   // successes stay in Done for good, no trash
     } else {
-      btn("No answer", "no_answer", "", () => logOutcome(e, "no_answer"));
+      btn("No answer", "no_answer", "", () => openNoAnswer(e));
       btn("Straight to VM", "voicemail", "", () => logOutcome(e, "voicemail"));
       btn("Call back", null, "", () => openCallback(e));
       btn("Success", "success", "win", () => openSuccess(e));
@@ -2346,8 +2379,28 @@ const Avatar = (() => {
     logOutcome(e, "success", { amt });
   };
 
+  // No answer menu: log it with or without a voicemail
+  let naEntry = null;
+  const lastVm = e => { const ev = (work[e.fp] && work[e.fp].events) || []; for (let i = ev.length - 1; i >= 0; i--) if (ev[i].vm || ev[i].o === "cb_voicemail") return ev[i]; return null; };
+  const vmCount = e => ((work[e.fp] && work[e.fp].events) || []).filter(x => x.vm || x.o === "cb_voicemail").length;
+  function openNoAnswer(e) {
+    naEntry = e;
+    $("naWho").textContent = [e.name || "No name", Ranking.groupShort(e.tier)].join(", ");
+    const v = lastVm(e);
+    $("naLast").hidden = !v;
+    if (v) $("naLast").textContent = `You already left ${vmCount(e) === 1 ? "a voicemail" : vmCount(e) + " voicemails"}, the last one ${fmtWhen(v.t)}.`;
+    $("naSheet").hidden = false;
+    history.pushState({ layer: "na" }, "");
+  }
+  const closeNa = () => { if (!$("naSheet").hidden) history.back(); };
+  const logNa = vm => { const e = naEntry; closeNa(); if (e) logOutcome(e, "no_answer", vm ? { vm: true } : undefined); };
+  $("naVm").onclick = () => logNa(true);
+  $("naNoVm").onclick = () => logNa(false);
+  $("naCancel").onclick = closeNa;
+  $("naSheet").addEventListener("click", ev => { if (ev.target === $("naSheet")) closeNa(); });
+
   // Call back menu
-  let cbEntry = null, cbKind = "cb_voicemail";
+  let cbEntry = null, cbKind = "cb_answered";   // call backs are only for people you actually spoke with
   const toLocalInput = d => { const p = n => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
   function setCbKind(k) { cbKind = k; document.querySelectorAll("#cbKind button").forEach(b => b.classList.toggle("on", b.dataset.k === k)); }
   function openCallback(e) {
@@ -2355,8 +2408,8 @@ const Avatar = (() => {
     $("cbWho").textContent = [e.name || "No name", Ranking.groupShort(e.tier)].join(", ");
     $("cbPtsVm").textContent = "+" + outcomePts("cb_voicemail", e.tier);
     $("cbPtsAns").textContent = "+" + outcomePts("cb_answered", e.tier);
-    $("cbRule").textContent = `Call back on time (30 min early to 2 hours late) for +${CB_ONTIME_BONUS}. Missing it costs ${CB_LATE_PENALTY}.`;
-    setCbKind("cb_voicemail");
+    $("cbRule").textContent = `You spoke with them: +${outcomePts("cb_answered", e.tier)} XP. Call back on time (30 min early to 2 hours late) for +${CB_ONTIME_BONUS}. Missing it costs ${CB_LATE_PENALTY}.`;
+    setCbKind("cb_answered");
     const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(10, 0, 0, 0);
     $("cbAt").value = toLocalInput(d);
     $("cbSheet").hidden = false;
@@ -2526,6 +2579,17 @@ const Avatar = (() => {
   });
 
   /* ---------- copy-to-note menu ---------- */
+  // "Clay County, MO" from the parsed county + the state in the address
+  function countyTitle() {
+    const c = F.county.value.trim(), st = (F.address.value.match(/,\s*([A-Z]{2})\s+\d{5}/) || [])[1];
+    return c && st ? `${c}, ${st}` : "";
+  }
+  const normT = s => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const looseT = s => normT(s).replace(/\b(county|parish|borough|co)\b/g, " ").replace(/\s+/g, " ").trim();
+  function findCountyNote(title) {
+    if (!title) return null;
+    return notes.find(n => normT(n.title) === normT(title)) || notes.find(n => looseT(n.title) === looseT(title)) || null;
+  }
   function openSheet() {
     $("sheetPreview").textContent = resultText();
     const g = Ranking.classify(F.age.value).group, p = preview(fieldValues());
@@ -2536,6 +2600,17 @@ const Avatar = (() => {
     const list = $("sheetList"); list.innerHTML = "";
     sorted().forEach(n => list.appendChild(noteButton(n, () => addTo(n))));
     $("sheetNew").value = "";
+    const ct = countyTitle(), match = findCountyNote(ct);
+    $("sgBox").hidden = !ct; $("sheetOr").hidden = !ct;
+    $("sheetTitle").textContent = ct ? `Add this to ${match ? match.title : ct}?` : "Copy to which note?";
+    if (ct) {
+      $("sgText").innerHTML = "";
+      if (match) { $("sgText").append("Matched from the address: "); $("sgText").appendChild(Object.assign(document.createElement("b"), { textContent: ct })); }
+      else { $("sgText").append("You don't have a note for "); $("sgText").appendChild(Object.assign(document.createElement("b"), { textContent: ct })); $("sgText").append(" yet."); }
+      $("sgYes").textContent = match ? `Yes, add to ${match.title}` : `Create ${ct} and add`;
+      $("sgYes").disabled = !!p.block;
+      $("sgYes").onclick = () => addTo(match || createNote(ct));
+    }
     list.querySelectorAll("button").forEach(b => b.disabled = !!p.block);
     $("sheetCreate").disabled = !!p.block; $("sheetNew").disabled = !!p.block;
     $("sheet").hidden = false;
